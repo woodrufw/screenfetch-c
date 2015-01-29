@@ -1,5 +1,6 @@
 /*	main.c
  *	Author: William Woodruff
+ *  Edited by: Aaron Caffrey
  *	-------------
  *
  *	screenfetch-c is a rewrite of screenFetch.sh in C.
@@ -23,82 +24,21 @@
 /* program includes */
 #include "detect.h"
 #include "disp.h"
-#include "logos.h"
 #include "colors.h"
 #include "misc.h"
 #include "util.h"
-#include "error_flag.h"
+#include "flags.h"
+#include "arrays.h"
+
 
 int main(int argc, char **argv)
 {
 	char given_distro_str[MAX_STRLEN] = "Unknown";
-	char distro_str[MAX_STRLEN] = "Unknown";
-	/*char arch_str[MAX_STRLEN] = "Unknown";*/
-	char host_str[MAX_STRLEN] = "Unknown";
-	char kernel_str[MAX_STRLEN] = "Unknown";
-	char uptime_str[MAX_STRLEN] = "Unknown";
-	char pkgs_str[MAX_STRLEN] = "Unknown";
-	char cpu_str[MAX_STRLEN] = "Unknown";
-	char gpu_str[MAX_STRLEN] = "Unknown";
-	char disk_str[MAX_STRLEN] = "Unknown";
-	char mem_str[MAX_STRLEN] = "Unknown";
-	char shell_str[MAX_STRLEN] = "Unknown";
-	char res_str[MAX_STRLEN] = "Unknown";
-	char de_str[MAX_STRLEN] = "Unknown";
-	char wm_str[MAX_STRLEN] = "Unknown";
-	char wm_theme_str[MAX_STRLEN] = "Unknown";
-	char gtk_str[MAX_STRLEN] = "Unknown";
-	char icon_str[MAX_STRLEN] = "Unknown";
-	char font_str[MAX_STRLEN] = "Unknown";
-
-	char host_colour[10];
-
-	char *detected_arr[17] =
-	{
-		host_str,
-		distro_str,
-		kernel_str,
-		cpu_str,
-		gpu_str,
-		shell_str,
-		pkgs_str,
-		disk_str,
-		mem_str,
-		uptime_str,
-		res_str,
-		de_str,
-		wm_str,
-		wm_theme_str,
-		gtk_str,
-		icon_str,
-		font_str
-	};
-
-	char *detected_arr_names[17] =
-	{
-		"",
-		"OS: ",
-		"Kernel: ",
-		"CPU: ",
-		"GPU: ",
-		"Shell: ",
-		"Packages: ",
-		"Disk: ",
-		"Memory: ",
-		"Uptime: ",
-		"Resolution: ",
-		"DE: ",
-		"WM: ",
-		"WM Theme: ",
-		"GTK: ",
-		"Icon Theme: ",
-		"Font: "
-	};
 
 	bool manual = false, logo = true, portrait = false;
 	bool verbose = false, screenshot = false;
 
-	struct option options[] =
+	static struct option options[] =
 	{
 		{ "manual", no_argument, 0, 'm' },
 		{ "verbose", no_argument, 0, 'v' },
@@ -119,38 +59,28 @@ int main(int argc, char **argv)
 	{
 		switch (c)
 		{
-			case 'm':
-				manual = true;
-				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'n':
-				logo = false;
-				break;
-			case 's':
-				screenshot = true;
-				break;
-			case 'D':
-				SET_GIVEN_DISTRO(optarg);
-				break;
-			case 'E':
-				error = false;
-				break;
-			case 'p':
-				portrait = true;
-				break;
-			case 'V':
-				display_version();
-				return EXIT_SUCCESS;
-			case 'h':
-				display_help();
-				return EXIT_SUCCESS;
-			case 'L':
-				output_logo_only(optarg);
-				return EXIT_SUCCESS;
+			case 'm': manual = true;
+					  break;
+			case 'v': verbose = true;
+					  break;
+			case 'n': logo = false;
+					  break;
+			case 's': screenshot = true;
+					  break;
+			case 'D': SET_GIVEN_DISTRO(optarg);
+					  break;
+			case 'E': error = false;
+					  break;
+			case 'p': portrait = true;
+					  break;
+			case 'V': display_version();
+					  return EXIT_SUCCESS;
+			case 'h': display_help();
+					  return EXIT_SUCCESS;
+			case 'L': main_ascii_output(optarg);
+					  return EXIT_SUCCESS;
 			default:
-				return EXIT_FAILURE;
+					return EXIT_FAILURE;
 		}
 	}
 
@@ -168,11 +98,11 @@ int main(int argc, char **argv)
 
 			/* if the user specifies an asterisk, fill the data in for them */
 			if (STREQ(distro_str, "*"))
-				detect_distro(distro_str, host_colour);
+				detect_distro(distro_str);
 			/*if (STREQ(arch_str, "*"))
 				detect_arch(arch_str);*/
 			if (STREQ(host_str, "*"))
-				detect_host(host_str, host_colour);
+				detect_host();
 			if (STREQ(kernel_str, "*"))
 				detect_kernel(kernel_str);
 			if (STREQ(cpu_str, "*"))
@@ -198,9 +128,9 @@ int main(int argc, char **argv)
 	}
 	else /* each string is filled by its respective function */
 	{
-		detect_distro(distro_str, host_colour);
+		detect_distro(distro_str);
 		/*detect_arch(arch_str);*/
-		detect_host(host_str, host_colour);
+		detect_host();
 		detect_kernel(kernel_str);
 		detect_uptime(uptime_str);
 		detect_pkgs(pkgs_str, distro_str);
@@ -221,20 +151,20 @@ int main(int argc, char **argv)
 		safe_strncpy(distro_str, given_distro_str, MAX_STRLEN);
 
 	if (verbose)
-		display_verbose(detected_arr, detected_arr_names);
+		main_text_output(true);
 
 	if (portrait)
 	{
-		output_logo_only(distro_str);
-		main_text_output(detected_arr, detected_arr_names);
+		main_ascii_output(distro_str);
+		main_text_output(false);
 	}
 	else if (logo)
-		main_ascii_output(detected_arr, detected_arr_names);
+		main_ascii_output("");
 	else
-		main_text_output(detected_arr, detected_arr_names);
+		main_text_output(false);
 
 	if (screenshot)
-		take_screenshot(verbose);
+		take_screenshot(verbose, res_str);
 
 	return EXIT_SUCCESS;
 }
