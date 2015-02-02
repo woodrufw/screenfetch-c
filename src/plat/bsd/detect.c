@@ -28,9 +28,8 @@
 
 /* program includes */
 #include "../../misc.h"
-#include "../../disp.h"
-#include "../../util.h"
-#include "../../error_flag.h"
+#include "../../extern.h"
+#include "../../prototypes.h"
 
 /*	detect_distro
 	detects the computer's distribution
@@ -46,20 +45,6 @@ void detect_distro(char *str)
 	return;
 }
 
-/*	detect_arch
-	detects the computer's architecture
-	argument char *str: the char array to be filled with the architecture
-*/
-void detect_arch(char *str)
-{
-	struct utsname arch_info;
-
-	uname(&arch_info);
-	safe_strncpy(str, arch_info.machine, MAX_STRLEN);
-
-	return;
-}
-
 /*	detect_host
 	detects the computer's hostname and active user and formats them
 	argument char *str: the char array to be filled with the host info
@@ -71,7 +56,6 @@ void detect_host(char *str)
 	struct utsname host_info;
 
 	given_user = getlogin();
-
 	uname(&host_info);
 	safe_strncpy(given_host, host_info.nodename, MAX_STRLEN);
 

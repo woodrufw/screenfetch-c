@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <getopt.h>
 
 /* linux-specific includes */
 #include <unistd.h>
@@ -29,10 +28,8 @@
 
 /* program includes */
 #include "../../misc.h"
-#include "../../disp.h"
-#include "../../util.h"
-#include "../../flags.h"
-#include "../../arrays.h"
+#include "../../extern.h"
+#include "../../prototypes.h"
 
 /*	detect_distro
 	detects the computer's distribution (really only relevant on Linux)
@@ -40,7 +37,7 @@
 */
 void detect_distro(char *str1)
 {
-	/* if distro_str was NOT set by the -D flag or manual mode */
+	/* if distro_str was NOT set by the -D flag */
 	if (STREQ(str1, "Unknown") || STREQ(str1, "*"))
 	{
 		FILE *distro_file;
@@ -141,19 +138,6 @@ void detect_distro(char *str1)
 
 	return;
 }
-
-/*	detect_arch
-	detects the computer's architecture
-	argument char *str: the char array to be filled with the architecture
-*/
-/*void detect_arch(char *str)
-{
-	struct utsname arch_info;
-	uname(&arch_info);
-	safe_strncpy(str, arch_info.machine, MAX_STRLEN);
-
-	return;
-}*/
 
 /*	detect_host
 	detects the computer's hostname and active user and formats them
@@ -357,11 +341,11 @@ void detect_cpu(char *str)
 
 		else
 			safe_strncpy(str, cpuinfo_line, MAX_STRLEN);
+
+		remove_excess_cpu_txt(str);
 	}
 	else if (error)
 		ERR_REPORT("Failed to open /proc/cpuinfo. Ancient Linux kernel?");
-
-	remove_excess_cpu_txt(str);
 
 	return;
 }
@@ -393,16 +377,12 @@ void detect_gpu(char *str)
 				glXDestroyContext(disp, context);
 			}
 			else if (error)
-			{
 				ERR_REPORT("Failed to create OpenGL context.");
-			}
 
 			XFree((void *) visual_info);
 		}
 		else if (error)
-		{
 			ERR_REPORT("Failed to select a proper X visual.");
-		}
 
 		XCloseDisplay(disp);
 	}
@@ -483,7 +463,7 @@ void detect_shell(char *str)
 
 	else
 	{
-		for (x = 0; x < 4; x++)
+		for (x = 0; x < shells_num; x++)
 			if (strstr(shell_name, mult_shell_arr[x][1]))
 			{
 				found_shell = true;
@@ -594,23 +574,17 @@ void detect_wm(char *str)
 				XFree(wm_name);
 			}
 			else if (error)
-			{
 				ERR_REPORT("No _NET_WM_NAME property found.");
-			}
 
 			XFree(wm_check_window);
 		}
 		else if (error)
-		{
 			ERR_REPORT("No WM detected (non-EWMH compliant?)");
-		}
 
 		XCloseDisplay(disp);
 	}
 	else if (error)
-	{
 		ERR_REPORT("Could not open an X display. (detect_wm)");
-	}
 
 	return;
 }
@@ -669,7 +643,6 @@ void detect_gtk(char *str1, char *str2, char *str3)
 		snprintf(str1, MAX_STRLEN, "%s (GTK2), %s (GTK3)", gtk2_str, gtk3_str);
 
 	snprintf(str2, MAX_STRLEN, "%s", gtk_icons_str);
-
 	snprintf(str3, MAX_STRLEN, "%s", font_str);
 
 	return;

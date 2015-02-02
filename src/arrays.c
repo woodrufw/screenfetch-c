@@ -8,10 +8,7 @@
  *  Like the rest of screenfetch-c, this file is licensed under the MIT license.
  */
 
-/*#include "structs.h"
-screenfetch_c ContaineR;*/
-
-#include "colors.h"
+#include <string.h>
 
 #define MAX_STR 128
 
@@ -34,6 +31,7 @@ char icon_str[MAX_STR]      = "Unknown";
 char font_str[MAX_STR]      = "Unknown";
 
 char UseR[MAX_STR], HosT[MAX_STR];
+char given_distro_str[MAX_STR] = "Unknown";
 
 char *detected_arr[] =
 {
@@ -59,22 +57,22 @@ char *detected_arr[] =
 char *detected_arr_names[] =
 {
     "",
-    "OS"TWHT":"TNRM" ",
-    "Kernel"TWHT":"TNRM" ",
-    "CPU"TWHT":"TNRM" ",
-    "GPU"TWHT":"TNRM" ",
-    "Shell"TWHT":"TNRM" ",
-    "Packages"TWHT":"TNRM" ",
-    "Disk"TWHT":"TNRM" ",
-    "Memory"TWHT":"TNRM" ",
-    "Uptime"TWHT":"TNRM" ",
-    "Resolution"TWHT":"TNRM" ",
-    "DE"TWHT":"TNRM" ",
-    "WM"TWHT":"TNRM" ",
-    "WM Theme"TWHT":"TNRM" ",
-    "GTK"TWHT":"TNRM" ",
-    "Icon Theme"TWHT":"TNRM" ",
-    "Font"TWHT":"TNRM" "
+    "OS: ",
+    "Kernel: ",
+    "CPU: ",
+    "GPU: ",
+    "Shell: ",
+    "Packages: ",
+    "Disk: ",
+    "Memory: ",
+    "Uptime: ",
+    "Resolution: ",
+    "DE: ",
+    "WM: ",
+    "WM Theme: ",
+    "GTK: ",
+    "Icon Theme: ",
+    "Font: "
 };
 
 /*  multidimensional array
@@ -88,3 +86,9 @@ char *mult_shell_arr[][2] =
     {"csh --version | head -1", "csh"},
     {"fish --version", "fish"}
 };
+
+/* calculates the total arrays in mult_shell_array,
+   this way you don't have to edit detect.c everytime
+   when you add/remove shell array
+*/
+const size_t shells_num = sizeof(mult_shell_arr) / 16;

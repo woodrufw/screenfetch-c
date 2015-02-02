@@ -29,9 +29,8 @@
 
 /* program includes */
 #include "../../misc.h"
-#include "../../disp.h"
-#include "../../util.h"
-#include "../../error_flag.h"
+#include "../../extern.h"
+#include "../../prototypes.h"
 
 /*	detect_distro
 	detects the computer's distribution (OS X release)
@@ -66,20 +65,6 @@ void detect_distro(char *str)
 	return;
 }
 
-/*	detect_arch
-	detects the computer's architecture
-	argument char *str: the char array to be filled with the architecture
-*/
-void detect_arch(char *str)
-{
-	struct utsname arch_info;
-
-	uname(&arch_info);
-	safe_strncpy(str, arch_info.machine, MAX_STRLEN);
-
-	return;
-}
-
 /*	detect_host
 	detects the computer's hostname and active user and formats them
 	argument char *str: the char array to be filled with the host info
@@ -108,7 +93,8 @@ void detect_kernel(char *str)
 	struct utsname kern_info;
 
 	uname(&kern_info);
-	snprintf(str, MAX_STRLEN, "%s %s", kern_info.sysname, kern_info.release);
+	snprintf(str, MAX_STRLEN, "%s %s %s", kern_info.sysname,
+			kern_info.release, kern_info.machine);
 
 	return;
 }

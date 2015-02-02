@@ -15,48 +15,11 @@
 #include <stdbool.h>
 
 /* program includes */
-#include "version.h"
-#include "logos.h"
-#include "colors.h"
 #include "misc.h"
-#include "disp.h"
-#include "logos_length.h"
-#include "arrays.h"
-#include "flags.h"
+#include "extern.h"
+#include "prototypes.h"
 #include "structs.h"
 
-/*	display_version
-	called if the -V (--version) flag is tripped
-*/
-void display_version(void)
-{
-	printf("%s\n", "screenfetch-c - Version " SCREENFETCH_C_VERSION_MAJOR "."
-			SCREENFETCH_C_VERSION_MINOR ", revision "
-			SCREENFETCH_C_VERSION_RELEASE ".");
-	return;
-}
-
-/*	display_help
-	called if the -h (--help) flag is tripped
-*/
-void display_help(void)
-{
-	display_version();
-	printf("\n%s\n", "Options:\n"
-			"  -m, --manual\t\t\t Enter manual mode.\n"
-			"  -v, --verbose\t\t\t Enable verbosity during output.\n"
-			"  -s, --screenshot\t\t Take a screenshot.\n"
-			"  -n, --no-logo\t\t\t Print output without a logo.\n"
-			"  -D, --distro [DISTRO]\t\t Print output with DISTRO's logo.\n"
-			"  -E, --suppress-errors\t\t Suppress error output.\n"
-			"  -p, --portrait\t\t Print output in portrait mode.\n"
-			"  -V, --version\t\t\t Output screenfetch-c's version and exit.\n"
-			"  -h, --help\t\t\t Output this help information.\n"
-			"  -L, --logo-only [DISTRO]\t Output only DISTRO's logo.\n"
-			"For more information, consult screenfetch-c's man page.\n");
-
-	return;
-}
 
 /* process_data
    print the detected and passed distro arguments
@@ -76,12 +39,12 @@ void process_data(char *logo[], unsigned short int num1, unsigned short int num2
 		if (0 == num2)
 			for (x = 0; x < num1; x++)
 				printf("%s %s%s%s%s%s\n", logo[x], TNRM, colour,
-					detected_arr_names[x], TNRM, detected_arr[x]);
+					gettext(detected_arr_names[x]), TNRM, detected_arr[x]);
 		else
 			for (x = 0; x < num1; x++)
 				if (x < num2)
 					printf("%s %s%s%s%s%s\n", logo[x], TNRM, colour,
-						detected_arr_names[x], TNRM, detected_arr[x]);
+						gettext(detected_arr_names[x]), TNRM, detected_arr[x]);
 				else
 					printf("%s\n", logo[x]);
 	}
@@ -101,10 +64,10 @@ void main_text_output(bool verbose)
 
 	if (verbose)
 		for (i = 0; i < 16; i++)
-			VERBOSE_OUT(detected_arr_names[i], detected_arr[i]);
+			VERBOSE_OUT(gettext(detected_arr_names[i]), detected_arr[i]);
 	else
 		for (i = 0; i < 16; i++)
-			printf("%s %s%s\n", detected_arr_names[i], TNRM, detected_arr[i]);
+			printf("%s %s%s\n", gettext(detected_arr_names[i]), TNRM, detected_arr[i]);
 
 	return;
 }

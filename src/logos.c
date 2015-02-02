@@ -7,7 +7,7 @@
  *	Like the rest of screenfetch-c, this file is licensed under the MIT license.
  */
 
-#include "colors.h"
+#include "misc.h"
 
 /* 18 */
 char *oldarch_logo[] = 

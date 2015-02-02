@@ -15,13 +15,12 @@
 #include <unistd.h>
 #include <time.h>
 #include <ctype.h>
+#include <regex.h>
 
 /* program includes */
-#include "disp.h"
 #include "misc.h"
-#include "flags.h"
-#include "arrays.h"
-#include "util.h"
+#include "extern.h"
+#include "prototypes.h"
 
 #if defined(__CYGWIN__)
 	#include <Windows.h>
@@ -69,29 +68,52 @@ void popen_raw_shell_version(char *str1, char *str2)
 */
 void remove_excess_cpu_txt(char *str1)
 {
-	if (!(STREQ(str1, "Unknown")) && !(STREQ(str1, "BCM2708 (Raspberry Pi)")))
+	char str1_copy[MAX_STRLEN];
+
+	safe_strncpy(str1_copy, str1, MAX_STRLEN);
+
+	bool tm_bool = false, processor_bool = false;
+	const char tokseps[] = " ()"; /* (TM), (tm) */
+	char *sep_str = strtok(str1_copy, tokseps);
+
+	/* verify that str1_copy has 'TM' or 'tm' and 'Processor' */
+	while (sep_str != NULL)
 	{
+		if (STREQ(sep_str, "tm") || STREQ(sep_str, "TM"))
+			tm_bool = true;
 
-		unsigned short int x = 0, z = 0;
-		const char tokseps[] = " ()"; /* (TM), (tm) */
+		if (STREQ(sep_str, "Processor"))
+			processor_bool = true;
+
+		/* retrieve the next separated string (if any) */
+		sep_str = strtok(NULL, tokseps);
+	}
+
+	if (tm_bool && processor_bool)
+	{
+		regex_t PatterN;
+		regmatch_t match[3];
 		char temp_arr[MAX_STRLEN];
-		char *sep_str = strtok(str1, tokseps);
+		int x = 0, z = 0;
 
-		do
-		{
-			if (!(STREQ(sep_str, "Processor")) && !(STREQ(sep_str, "tm"))
-				&& !(STREQ(sep_str, "TM")))
-			{
-				if (z > 0)
-					temp_arr[z++] = ' ';
+		regcomp(&PatterN, "(.*)[^-](tm|TM)", REG_EXTENDED);
+		regexec(&PatterN, str1, 3, match, 0);
 
-				for (x = 0; x < strlen(sep_str); x++)
-					temp_arr[z++] = sep_str[x];
-			}
-		} while ((sep_str = strtok(NULL, tokseps)) != NULL);
+		int first_end = match[1].rm_eo;
+
+		for (x = match[1].rm_so; x < first_end; x++)
+			temp_arr[z++] = str1[x];
+
+		regcomp(&PatterN, "(.*) Processor", REG_EXTENDED);
+		regexec(&PatterN, str1, 3, match, 0);
+
+		for (x = (first_end+4); x < match[1].rm_eo; x++)
+			temp_arr[z++] = str1[x];
 
 		temp_arr[z] = '\0';
 		snprintf(cpu_str, MAX_STRLEN, "%s", temp_arr);
+
+		regfree(&PatterN);
 	}
 }
 
@@ -133,14 +155,11 @@ void take_screenshot(bool verbose, char *monitor_res)
 #if !defined(__CYGWIN__)
 	int call_status = 1;
 	char file_loc[MAX_STRLEN+MAX_STRLEN];
-#endif
-
     char time_str[MAX_STRLEN], shot_location[MAX_STRLEN], shot_str[MAX_STRLEN+MAX_STRLEN];
     time_t t = time(NULL);
-
     strftime(time_str, MAX_STRLEN, "%Y-%m-%d-%H%M%S", localtime(&t));
-
     sprintf(shot_location, "/screenfetch-%s_%s.png", time_str, monitor_res);
+#endif
 
 	printf("%s", "Taking shot in 3..");
 	fflush(stdout);
@@ -178,149 +197,23 @@ void take_screenshot(bool verbose, char *monitor_res)
 	*/
 #elif defined(__APPLE__) && defined(__MACH__)
 		sprintf(shot_str, "screencapture -x ~%s 2> /dev/null", shot_location);
+		call_status = system(shot_str);
 #else
 		sprintf(shot_str, "scrot ~%s 2> /dev/null", shot_location);
+		call_status = system(shot_str);
 #endif
-
-	call_status = system(shot_str);
 
 #if !defined(__CYGWIN__)
 	safe_strncpy(file_loc, getenv("HOME"), MAX_STRLEN);
 	strncat(file_loc, shot_location, MAX_STRLEN);
 
 	if (FILE_EXISTS(file_loc) && verbose)
-	{
 		VERBOSE_OUT("Screenshot successfully saved.", "");
-	}
+
 	else if (call_status && error)
-	{
 		ERR_REPORT("Problem saving screenshot.");
-	}
+
 #endif
 
 	return;
-}
-
-/*  manual_input
-	generates (or reads) the ~/.screenfetchc file based upon user input
-	returns an int indicating status (SUCCESS or FAILURE)
-*/
-int manual_input(char **data, bool verbose)
-{
-	FILE *config_file;
-	char config_file_loc[MAX_STRLEN];
-
-	safe_strncpy(config_file_loc, getenv("HOME"), MAX_STRLEN);
-	strncat(config_file_loc, "/.screenfetchc", MAX_STRLEN);
-
-	if (!FILE_EXISTS(config_file_loc))
-	{
-		#if defined(__CYGWIN__)
-			printf("%s\n", TBLU "WARNING: There is currenly a bug involving manual mode on Windows." TNRM);
-			printf("%s\n", TBLU "Only continue if you are ABSOLUTELY sure." TNRM);
-		#endif
-
-		printf("%s\n", "This appears to be your first time running screenfetch-c in manual mode.");
-		printf("%s", "Would you like to continue? (y/n) ");
-
-		char choice = getchar();
-		getchar(); /* flush the newline */
-
-		if (choice == 'y' || choice == 'Y')
-		{
-			char input[MAX_STRLEN];
-			config_file = fopen(config_file_loc, "w");
-
-			printf("%s\n", "We are now going to begin the manual mode input process.");
-			printf("%s\n", "Please enter exactly what is asked for.");
-			printf("%s\n", "If you are unsure about format, please consult the manpage.");
-
-			printf("%s", "Please enter the name of your distribution/OS: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your architecture: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your username@hostname: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your kernel: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your CPU name: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your GPU name: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your shell name and version: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your monitor resolution: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your DE name: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your WM name: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter your WM Theme name: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s", "Please enter any GTK info: ");
-			fgets(input, MAX_STRLEN, stdin);
-			fprintf(config_file, "%s", input);
-
-			printf("%s\n", "That concludes the manual input.");
-			printf("%s\n", "From now on, screenfetch-c will use this information when called with -m.");
-
-			fclose(config_file);
-		}
-		else
-		{
-			printf("%s\n", "Exiting manual mode and screenfetch-c.");
-			printf("%s\n", "If you wish to run screenfetch-c normally, do not use the -m (--manual) flag next time.");
-		}
-		
-		return EXIT_FAILURE;
-	}
-	else
-	{
-		if (verbose)
-			VERBOSE_OUT("Found config file. Reading...", "");
-
-		config_file = fopen(config_file_loc, "r");
-
-		/*	store anything without a newline it it,
-			then swallow any whitespace characters (" ").
-		 */
-		fscanf(config_file, "%[^\n] ", data[1]);
-		fscanf(config_file, "%[^\n] ", data[3]);
-		fscanf(config_file, "%[^\n] ", data[0]);
-		fscanf(config_file, "%[^\n] ", data[2]);
-		fscanf(config_file, "%[^\n] ", data[4]);
-		fscanf(config_file, "%[^\n] ", data[5]);
-		fscanf(config_file, "%[^\n] ", data[6]);
-		fscanf(config_file, "%[^\n] ", data[11]);
-		fscanf(config_file, "%[^\n] ", data[12]);
-		fscanf(config_file, "%[^\n] ", data[13]);
-		fscanf(config_file, "%[^\n] ", data[14]);
-		fscanf(config_file, "%[^\n] ", data[15]);
-
-		fclose(config_file);
-
-		return EXIT_SUCCESS;
-	}
 }

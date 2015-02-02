@@ -1,0 +1,69 @@
+# Testing internationalization, currently only
+# few strings are translated
+
+# Open up '/etc/locale.gen' and uncomment 
+# en_GB.UTF-8 UTF-8, run 'locale-gen',
+# open up /etc/locale.conf  and add
+# LANG="en_GB.UTF-8"
+# logout & login again.
+
+msgid "Kernel: "
+msgstr "Test1: "
+
+msgid "Font: "
+msgstr "Test2: "
+
+msgid "Shell: "
+msgstr "Test3: "
+
+msgid "Enable verbosity during output."
+msgstr "Translation test 1"
+
+msgid "Take a screenshot."
+msgstr "Translation test 2"
+
+msgid "Print output without a logo."
+msgstr "Translation test 3"
+
+msgid "Suppress error output."
+msgstr "Translation test 4"
+
+msgid "Print output in portrait mode."
+msgstr "Translation test 5"
+
+msgid "Output only DISTRO's logo."
+msgstr "Translation test 6"
+
+msgid "Print output with DISTRO's logo."
+msgstr "Translation test 7"
+
+msgid "Display computer information and an ASCII logo"
+msgstr "Translation test 8"
+
+msgid "Print program version"
+msgstr "Translation test 9"
+
+msgid "Give a short usage message"
+msgstr "Translation test 10"
+
+msgid "Give this help list"
+msgstr "Translation test 11"
+
+msgid "Usage:"
+msgstr "Translation test 12"
+
+msgid " [OPTION...]"
+msgstr "Translation test 13"
+
+msgid "Main operation mode:"
+msgstr "Translation test 14"
+
+msgid ""
+"Mandatory or optional arguments to long options are also mandatory or "
+"optional for any corresponding short options."
+msgstr ""
+"Translation test 15"
+"Translation test 16"
+
+msgid "Report bugs to %s.\n"
+msgstr "Translation test 17\n"

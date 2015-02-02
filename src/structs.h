@@ -10,15 +10,13 @@
 #ifndef SCREENFETCH_C_STRUCTS_H
 #define SCREENFETCH_C_STRUCTS_H
 
-#include "logos_length.h"
-#include "colors.h"
 
 typedef struct
 {
     char **logo;                    /* the ascii logo in logos.c */
-    unsigned short int len;         /* controls the 'for' loop iteration cycles */
+    unsigned short int len;         /* controls the process_data() 'for' loop iteration cycles */
     unsigned short int break_point; /* do not index detected_arr_names[x] and detected_arr[x] after this value */
-    char *colour;                   /* the colour for "user@hostname" */
+    char *colour;                   /* colorize detected_arr_names[x] and "user@hostname" with the given colour */
     char *distro;                   /* the distro name to match in main_ascii_output() */
 } mad_dog_struct;
 
@@ -52,17 +50,17 @@ static const mad_dog_struct opt[] =
 
     {.logo = redhat_logo, .len = REDHAT_LEN, .break_point = 16, .colour = TRED, .distro = "Red Hat Linux"},
 
-    {.logo = frugalware_logo, .len = FRUGALWARE_LEN, .break_point = 16, .colour = TLCY, .distro = "Frugalware"},
+    {.logo = frugalware_logo, .len = FRUGALWARE_LEN, .break_point = 16, .colour = TLBL, .distro = "Frugalware"},
 
     {.logo = peppermint_logo, .len = PEPPERMINT_LEN, .break_point = 16, .colour = TLRD, .distro = "Peppermint"},
 
-    {.logo = solusos_logo, .len = SOLUSOS_LEN, .break_point = 16, .colour = TLGY, .distro = "SolusOS"},
+    {.logo = solusos_logo, .len = SOLUSOS_LEN, .break_point = 16, .colour = TDGY, .distro = "SolusOS"},
 
-    {.logo = mageia_logo, .len = MAGEIA_LEN, .break_point = 16, .colour = TLGY, .distro = "Mageia"},
+    {.logo = mageia_logo, .len = MAGEIA_LEN, .break_point = 16, .colour = TLCY, .distro = "Mageia"},
 
-    {.logo = parabolagnu_linuxlibre_logo, .len = PARABOLA_LEN, .break_point = 16, .colour = TLGY, .distro = "ParabolaGNU/Linux-libre"},
+    {.logo = parabolagnu_linuxlibre_logo, .len = PARABOLA_LEN, .break_point = 16, .colour = TLPR, .distro = "ParabolaGNU/Linux-libre"},
 
-    {.logo = viperr_logo, .len = VIPERR_LEN, .break_point = 16, .colour = TLGY, .distro = "Viperr"},
+    {.logo = viperr_logo, .len = VIPERR_LEN, .break_point = 16, .colour = TDGY, .distro = "Viperr"},
 
     {.logo = linuxdeepin_logo, .len = DEEPIN_LEN, .break_point = 16, .colour = TLGN, .distro = "LinuxDeepin"},
 
@@ -74,13 +72,13 @@ static const mad_dog_struct opt[] =
 
     {.logo = manjaro_logo, .len = MANJARO_LEN, .break_point = 16, .colour = TLGN, .distro = "Manjaro"},
 
-    {.logo = elementaryos_logo, .len = ELEMENTARY_LEN, .break_point = 16, .colour = TLGN, .distro = "elementary OS"},
+    {.logo = elementaryos_logo, .len = ELEMENTARY_LEN, .break_point = 16, .colour = TDGY, .distro = "elementary OS"},
 
-    {.logo = scientificlinux_logo, .len = SCIENTIFIC_LEN, .break_point = 16, .colour = TLRD, .distro = "Scientific Linux"},
+    {.logo = scientificlinux_logo, .len = SCIENTIFIC_LEN, .break_point = 16, .colour = TLBL, .distro = "Scientific Linux"},
 
     {.logo = backtracklinux_logo, .len = BACKTRACK_LEN, .break_point = 16, .colour = TLRD, .distro = "Backtrack Linux"},
 
-    {.logo = backtracklinux_logo, .len = KALI_LEN, .break_point = 16, .colour = TLBL, .distro = "Kali Linux"},
+    {.logo = kalilinux_logo, .len = KALI_LEN, .break_point = 16, .colour = TLBL, .distro = "Kali Linux"},
 
     {.logo = sabayon_logo, .len = SABAYON_LEN, .break_point = 16, .colour = TLBL, .distro = "Sabayon"},
 
@@ -88,7 +86,7 @@ static const mad_dog_struct opt[] =
 
     {.logo = angstrom_logo, .len = ANGSTROM_LEN, .break_point = 0, .colour = "", .distro = "Angstrom"},
 
-    {.logo = linux_logo, .len = LINUX_LEN, .break_point = 16, .colour = TLGY, .distro = "Linux"},
+    {.logo = linux_logo, .len = LINUX_LEN, .break_point = 16, .colour = TDGY, .distro = "Linux"},
 
     {.logo = freebsd_logo, .len = FREEBSD_LEN, .break_point = 16, .colour = TLRD, .distro = "FreeBSD"},
 
@@ -102,16 +100,5 @@ static const mad_dog_struct opt[] =
 
 };
 
-
-/*typedef struct screenfetch_c_ screenfetch_c;
-
-struct screenfetch_c_
-{
-    char *UseR;
-    char *HosT;
-    char *User_hosT;
-};
-
-extern screenfetch_c ContaineR;*/
 
 #endif /* SCREENFETCH_C_STRUCTS_H */
