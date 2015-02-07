@@ -15,4 +15,4 @@ bool main_logo = true;
 bool portrait = false;
 bool verbose = false;
 bool screenshot = false;
-bool logo_only_requested = false;
+bool break_requested = false;

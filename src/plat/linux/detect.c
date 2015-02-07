@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <inttypes.h>
 
 /* linux-specific includes */
 #include <unistd.h>
@@ -50,9 +51,20 @@ void detect_distro(char *str1)
 		else
 		{
 			bool detected = false;
+			uint_fast16_t x = 0;
 
 			/* Bad solution, as /etc/issue contains junk on some distros */
 			distro_file = fopen("/etc/issue", "r");
+			const char *distro_arr[][2] =
+			{
+				{"Kali", "Kali Linux"},
+				{"Back", "Backtrack Linux"},
+				{"Crun", "CrunchBang"},
+				{"LMDE", "LMDE"},
+				{"Debi", "Debian"},
+				{"Rasp", "Debian"}
+			};
+			const size_t len_distro_arr = ARR_LEN(distro_arr);
 
 			if (distro_file != NULL)
 			{
@@ -60,77 +72,63 @@ void detect_distro(char *str1)
 				fscanf(distro_file, "%4s", distro_name_str);
 				fclose(distro_file);
 
-				if (STREQ(distro_name_str, "Kali"))
-				{
-					safe_strncpy(str1, "Kali Linux", MAX_STRLEN);
-					detected = true;
-				}
-				else if (STREQ(distro_name_str, "Back"))
-				{
-					safe_strncpy(str1, "Backtrack Linux", MAX_STRLEN);
-					detected = true;
-				}
-				else if (STREQ(distro_name_str, "Crun"))
-				{
-					safe_strncpy(str1, "CrunchBang", MAX_STRLEN);
-					detected = true;
-				}
-				else if (STREQ(distro_name_str, "LMDE"))
-				{
-					safe_strncpy(str1, "LMDE", MAX_STRLEN);
-					detected = true;
-				}
-				else if (STREQ(distro_name_str, "Debi")
-						|| STREQ(distro_name_str, "Rasp"))
-				{
-					safe_strncpy(str1, "Debian", MAX_STRLEN);
-					detected = true;
-				}
+				for (x = 0; x < len_distro_arr; x++)
+					if (STREQ(distro_name_str, distro_arr[x][0]))
+					{
+						safe_strncpy(str1, distro_arr[x][1], MAX_STRLEN);
+						detected = true;
+						break;
+					}
 			}
 
 			if (!detected)
 			{
-				if (FILE_EXISTS("/etc/fedora-release"))
-					safe_strncpy(str1, "Fedora", MAX_STRLEN);
-
-				else if (FILE_EXISTS("/etc/SuSE-release"))
-					safe_strncpy(str1, "OpenSUSE", MAX_STRLEN);
-
-				else if (FILE_EXISTS("/etc/arch-release"))
-					safe_strncpy(str1, "Arch Linux", MAX_STRLEN);
-
-				else if (FILE_EXISTS("/etc/gentoo-release"))
-					safe_strncpy(str1, "Gentoo", MAX_STRLEN);
-
-				else if (FILE_EXISTS("/etc/angstrom-version"))
-					safe_strncpy(str1, "Angstrom", MAX_STRLEN);
-
-				else if (FILE_EXISTS("/etc/manjaro-release"))
-					safe_strncpy(str1, "Manjaro", MAX_STRLEN);
-
-				else if (FILE_EXISTS("/etc/lsb-release"))
+				bool found_distro = false;
+				const char *distro_file_arr[][2] =
 				{
-					distro_file = fopen("/etc/lsb-release", "r");
-					fscanf(distro_file, "%s ", distro_name_str);
-					fclose(distro_file);
+					{"/etc/fedora-release", "Fedora"},
+					{"/etc/SuSE-release", "OpenSUSE"},
+					{"/etc/arch-release", "Arch Linux"},
+					{"/etc/gentoo-release", "Gentoo"},
+					{"/etc/angstrom-version", "Angstrom"},
+					{"/etc/manjaro-release", "Manjaro"}
+				};
+				const size_t len_distro_file_arr = ARR_LEN(distro_file_arr);
+				
+				for (x = 0; x < len_distro_file_arr; x++)
+					if (FILE_EXISTS(distro_file_arr[x][0]))
+					{
+						safe_strncpy(str1, distro_file_arr[x][1], MAX_STRLEN);
+						found_distro = true;
+						break;
+					}
 
-					snprintf(str1, MAX_STRLEN, "%s", distro_name_str + 11);
-				}
-				else if (FILE_EXISTS("/etc/os-release"))
+				if (!found_distro)
 				{
-					/*
-						TODO: Parse NAME or PRETTY_NAME from os-release
-						Until then, spit out an error message.
-					*/
-					if (error)
-						ERR_REPORT("Failed to detect a Linux distro (1).");
-				}
-				else
-				{
-					safe_strncpy(str1, "Linux", MAX_STRLEN);
+					if (FILE_EXISTS("/etc/lsb-release"))
+					{
+						distro_file = fopen("/etc/lsb-release", "r");
+						fscanf(distro_file, "%s ", distro_name_str);
+						fclose(distro_file);
 
-					if (error)
-						ERR_REPORT("Failed to detect a Linux distro (2).");
+						snprintf(str1, MAX_STRLEN, "%s", distro_name_str + 11);
+					}
+					else if (FILE_EXISTS("/etc/os-release"))
+					{
+						/*
+							TODO: Parse NAME or PRETTY_NAME from os-release
+							Until then, spit out an error message.
+						*/
+						if (error)
+							ERR_REPORT(_("Failed to detect a Linux distro (1)."));
+					}
+					else
+					{
+						safe_strncpy(str1, "Linux", MAX_STRLEN);
+
+						if (error)
+							ERR_REPORT(_("Failed to detect a Linux distro (2)."));
+					}
 				}
 			}
 		}
@@ -153,13 +151,13 @@ void detect_host(void)
 		safe_strncpy(given_user, user_info->pw_name, MAX_STRLEN);
 
 	else if (error)
-		ERR_REPORT("Could not detect username.");
+		ERR_REPORT(_("Could not detect username."));
 	
 	if (!(uname(&host_info)))
 		safe_strncpy(given_host, host_info.nodename, MAX_STRLEN);
 
 	else if (error)
-		ERR_REPORT("Could not detect hostname.");
+		ERR_REPORT(_("Could not detect hostname."));
 
 	snprintf(UseR, MAX_STRLEN, "%s", given_user);
 	snprintf(HosT, MAX_STRLEN, "%s", given_host);
@@ -176,13 +174,11 @@ void detect_kernel(char *str)
 	struct utsname kern_info;
 
 	if (!(uname(&kern_info)))
-		snprintf(str, MAX_STRLEN, "%s %s %s", kern_info.sysname, kern_info.release, kern_info.machine);
+		snprintf(str, MAX_STRLEN, "%s %s %s",
+			kern_info.sysname, kern_info.release, kern_info.machine);
 
 	else if (error)
-	{
-		ERR_REPORT("Could not detect kernel information.");
-		safe_strncpy(str, "Linux", MAX_STRLEN);
-	}
+		ERR_REPORT(_("Could not detect kernel information."));
 
 	return;
 }
@@ -193,7 +189,7 @@ void detect_kernel(char *str)
 */
 void detect_uptime(char *str)
 {
-	unsigned int secs = 0, mins = 0, hrs = 0, days = 0;
+	uint_least32_t secs = 0, mins = 0, hrs = 0, days = 0;
 	struct sysinfo si_upt;
 
 	if (!(sysinfo(&si_upt)))
@@ -201,28 +197,32 @@ void detect_uptime(char *str)
 		split_uptime(si_upt.uptime, &secs, &mins, &hrs, &days);
 
 		if (days > 0)
-			snprintf(str, MAX_STRLEN, "%ud %uh %um %us", days, hrs, mins, secs);
+			snprintf(str, MAX_STRLEN,
+				"%"PRIuLEAST32"d %"PRIuLEAST32"h %"PRIuLEAST32"m %"PRIuLEAST32"s",
+				days, hrs, mins, secs);
 		else
-			snprintf(str, MAX_STRLEN, "%uh %um %us", hrs, mins, secs);
+			snprintf(str, MAX_STRLEN,
+				"%"PRIuLEAST32"h %"PRIuLEAST32"m %"PRIuLEAST32"s",
+				hrs, mins, secs);
 	}
 	else
-		ERR_REPORT("Could not detect system uptime.");
+		ERR_REPORT(_("Could not detect system uptime."));
 
 	return;
 }
 
-static unsigned short int glob_packages(char *str1);
+static uint_fast16_t glob_packages(char *str1);
 
-static unsigned short int glob_packages(char *str1)
+static uint_fast16_t glob_packages(char *str1)
 {
-	unsigned short int packs_num = 0;
+	uint_fast16_t packs_num = 0;
 	glob_t gl;
 
 	if (!(glob(str1, GLOB_NOSORT, NULL, &gl)))
 		packs_num = gl.gl_pathc;
 
 	else if (error)
-		ERR_REPORT("Failure while globbing packages.");
+		ERR_REPORT(_("Failure while globbing packages."));
 
 	globfree(&gl);
 
@@ -236,7 +236,7 @@ static unsigned short int glob_packages(char *str1)
 void detect_pkgs(char *str, const char *distro_str)
 {
 	FILE *pkgs_file;
-	unsigned short int packages = 0;
+	uint_fast16_t packages = 0;
 
 	if (STREQ(distro_str, "Arch Linux")
 		|| STREQ(distro_str, "ParabolaGNU/Linux-libre")
@@ -247,7 +247,7 @@ void detect_pkgs(char *str, const char *distro_str)
 	else if (STREQ(distro_str, "Frugalware"))
 	{
 		pkgs_file = popen("pacman-g2 -Q 2> /dev/null | wc -l", "r");
-		fscanf(pkgs_file, "%hu", &packages);
+		fscanf(pkgs_file, "%"SCNuFAST16, &packages);
 		pclose(pkgs_file);
 	}
 	else if (STREQ(distro_str, "Ubuntu") || STREQ(distro_str, "Lubuntu")
@@ -276,25 +276,26 @@ void detect_pkgs(char *str, const char *distro_str)
 	{
 		/* RPM uses Berkeley DBs internally, so this won't change soon */
 		pkgs_file = popen("rpm -qa 2> /dev/null | wc -l", "r");
-		fscanf(pkgs_file, "%hu", &packages);
+		fscanf(pkgs_file, "%"SCNuFAST16, &packages);
 		pclose(pkgs_file);
 	}
 	else if (STREQ(distro_str, "Angstrom"))
 	{
 		pkgs_file = popen("opkg list-installed 2> /dev/null | wc -l", "r");
-		fscanf(pkgs_file, "%hu", &packages);
+		fscanf(pkgs_file, "%"SCNuFAST16, &packages);
 		pclose(pkgs_file);
 	}
-	else if (STREQ(distro_str, "Linux")) /* if linux disto detection failed */
+	else   /* if linux disto detection failed */
 	{
-		safe_strncpy(str, "Not Found", MAX_STRLEN);
+		safe_strncpy(str, _("Not Found"), MAX_STRLEN);
 
 		if (error)
-			ERR_REPORT("Packages cannot be detected on an unknown "
-						"Linux distro.");
+			ERR_REPORT(_("Packages cannot be detected on an unknown Linux distro."));
+
+		return;
 	}
 
-	snprintf(str, MAX_STRLEN, "%hu", packages);
+	snprintf(str, MAX_STRLEN, "%"PRIuFAST16, packages);
 
 	return;
 }
@@ -309,7 +310,7 @@ void detect_cpu(char *str)
 	char cpuinfo_buf[MAX_STRLEN];
 	char *cpuinfo_line;
 	size_t end;
-	unsigned short int i = 0;
+	uint_fast16_t i = 0;
 
 	if ((cpu_file = fopen("/proc/cpuinfo", "r")))
 	{
@@ -318,7 +319,7 @@ void detect_cpu(char *str)
 		{
 			if (!(fgets(cpuinfo_buf, MAX_STRLEN, cpu_file)))
 			{
-				ERR_REPORT("Fatal error while reading /proc/cpuinfo");
+				ERR_REPORT(_("Fatal error while reading /proc/cpuinfo"));
 				return;
 			}
 		}
@@ -326,7 +327,7 @@ void detect_cpu(char *str)
 		/* fail to match a colon. this should never happen, but check anyways */
 		if (!(cpuinfo_line = strchr(cpuinfo_buf, ':')))
 		{
-			ERR_REPORT("Fatal error matching in /proc/cpuinfo");
+			ERR_REPORT(_("Fatal error matching in /proc/cpuinfo"));
 			return;
 		}
 
@@ -345,7 +346,7 @@ void detect_cpu(char *str)
 		remove_excess_cpu_txt(str);
 	}
 	else if (error)
-		ERR_REPORT("Failed to open /proc/cpuinfo. Ancient Linux kernel?");
+		ERR_REPORT(_("Failed to open /proc/cpuinfo. Ancient Linux kernel?"));
 
 	return;
 }
@@ -377,19 +378,21 @@ void detect_gpu(char *str)
 				glXDestroyContext(disp, context);
 			}
 			else if (error)
-				ERR_REPORT("Failed to create OpenGL context.");
+				ERR_REPORT(_("Failed to create OpenGL context."));
 
 			XFree((void *) visual_info);
 		}
 		else if (error)
-			ERR_REPORT("Failed to select a proper X visual.");
+			ERR_REPORT(_("Failed to select a proper X visual."));
 
 		XCloseDisplay(disp);
 	}
-	else if (error)
+	else
 	{
-		safe_strncpy(str, "No X Server", MAX_STRLEN);
-		ERR_REPORT("Could not open an X display (detect_gpu).");
+		safe_strncpy(str, _("No X Server"), MAX_STRLEN);
+
+		if (error)
+			ERR_REPORT(_("Could not open an X display (detect_gpu)."));
 	}
 
 	return;
@@ -402,17 +405,18 @@ void detect_gpu(char *str)
 void detect_disk(char *str)
 {
 	struct statvfs disk_info;
-	unsigned long int disk_total = 0, disk_used = 0, disk_percentage = 0;
+	uintmax_t disk_total = 0, disk_used = 0, disk_percentage = 0;
 
 	if (!(statvfs(getenv("HOME"), &disk_info)))
 	{
 		disk_total = ((disk_info.f_blocks * disk_info.f_bsize) / GB);
 		disk_used = (((disk_info.f_blocks - disk_info.f_bfree) * disk_info.f_bsize) / GB);
 		disk_percentage = (((float) disk_used / disk_total) * 100);
-		snprintf(str, MAX_STRLEN, "%luG / %luG (%lu%%)", disk_used, disk_total, disk_percentage);
+		snprintf(str, MAX_STRLEN, "%"PRIuMAX"G / %"PRIuMAX"G (%"PRIuMAX"%%)",
+									disk_used, disk_total, disk_percentage);
 	}
 	else if (error)
-		ERR_REPORT("Could not stat $HOME for filesystem statistics.");
+		ERR_REPORT(_("Could not stat $HOME for filesystem statistics."));
 
 	return;
 }
@@ -423,60 +427,17 @@ void detect_disk(char *str)
 */
 void detect_mem(char *str)
 {
-	unsigned long int total_mem = 0, used_mem = 0;
+	uintmax_t total_mem = 0, used_mem = 0;
 	struct sysinfo si_mem;
 
-	/* known problem: because linux utilizes free ram in caches/buffers,
-	   the amount of memory sysinfo reports as free is very small.
-	*/
 	sysinfo(&si_mem);
 
-	total_mem = (unsigned long int) (si_mem.totalram * si_mem.mem_unit) / MB;
-	used_mem  = (unsigned long int) ((si_mem.totalram - si_mem.freeram - si_mem.bufferram
-											 - si_mem.sharedram) * si_mem.mem_unit) / MB;
+	total_mem = (uintmax_t) (si_mem.totalram * si_mem.mem_unit) / MB;
+	used_mem  = (uintmax_t) ((si_mem.totalram - si_mem.freeram - si_mem.bufferram
+									  - si_mem.sharedram) * si_mem.mem_unit) / MB;
 
-	snprintf(str, MAX_STRLEN, "%lu%s / %lu%s", used_mem, "MB", total_mem, "MB");
-
-	return;
-}
-
-/*	detect_shell
-	detects the shell currently running on the computer
-	argument char *str: the char array to be filled with the shell name and version
-*/
-void detect_shell(char *str)
-{
-	char *shell_name;
-	unsigned short int x = 0;
-	bool found_shell = false;
-
-	if (!(shell_name = getenv("SHELL")))
-	{
-		if (error)
-			ERR_REPORT("Could not detect a shell - $SHELL not defined.");
-
-		return;
-	}
-
-	if (STREQ(shell_name, "/bin/sh"))
-		safe_strncpy(str, "POSIX sh", MAX_STRLEN);
-
-	else
-	{
-		for (x = 0; x < shells_num; x++)
-			if (strstr(shell_name, mult_shell_arr[x][1]))
-			{
-				found_shell = true;
-				break;
-			}
-
-		if (found_shell)
-			popen_raw_shell_version(mult_shell_arr[x][0], mult_shell_arr[x][1]);
-		else
-			safe_strncpy(str, shell_name, MAX_STRLEN);
-	}
-	/* Add support for moar shells: "dash", "ash", "ksh"
-		include them in arrays.c */
+	snprintf(str, MAX_STRLEN, "%"PRIuMAX"%s / %"PRIuMAX"%s",
+							used_mem, "MB", total_mem, "MB");
 
 	return;
 }
@@ -487,7 +448,7 @@ void detect_shell(char *str)
 */
 void detect_res(char *str)
 {
-	unsigned short int width = 0, height = 0;
+	uint_fast16_t width = 0, height = 0;
 	Display *disp;
 	Screen *screen;
 
@@ -497,16 +458,16 @@ void detect_res(char *str)
 		width = WidthOfScreen(screen);
 		height = HeightOfScreen(screen);
 
-		snprintf(str, MAX_STRLEN, "%hux%hu", width, height);
+		snprintf(str, MAX_STRLEN, "%"PRIuFAST16"x%"PRIuFAST16, width, height);
 
 		XCloseDisplay(disp);
 	}
 	else
 	{
-		safe_strncpy(str, "No X Server", MAX_STRLEN);
+		safe_strncpy(str, _("No X Server"), MAX_STRLEN);
 
 		if (error)
-			ERR_REPORT("Could not open an X display (detect_res)");
+			ERR_REPORT(_("Could not open an X display (detect_res)"));
 	}
 
 	return;
@@ -538,7 +499,7 @@ void detect_de(char *str)
 			snprintf(str, MAX_STRLEN, "KDE%s", getenv("KDE_SESSION_VERSION"));
 
 		else if (error)
-			ERR_REPORT("No desktop environment found.");
+			ERR_REPORT(_("No desktop environment found."));
 	}
 
 	return;
@@ -553,8 +514,7 @@ void detect_wm(char *str)
 	Display *disp;
 	Atom actual_type;
 	int actual_format;
-	unsigned long nitems;
-	unsigned long bytes;
+	unsigned long nitems, bytes;
 	char *wm_name = '\0';
 	Window *wm_check_window;
 
@@ -574,17 +534,22 @@ void detect_wm(char *str)
 				XFree(wm_name);
 			}
 			else if (error)
-				ERR_REPORT("No _NET_WM_NAME property found.");
+				ERR_REPORT(_("No _NET_WM_NAME property found."));
 
 			XFree(wm_check_window);
 		}
 		else if (error)
-			ERR_REPORT("No WM detected (non-EWMH compliant?)");
+			ERR_REPORT(_("No WM detected (non-EWMH compliant?)"));
 
 		XCloseDisplay(disp);
 	}
-	else if (error)
-		ERR_REPORT("Could not open an X display. (detect_wm)");
+	else 
+	{
+		safe_strncpy(str, _("No X Server"), MAX_STRLEN);
+
+		if (error)
+			ERR_REPORT(_("Could not open an X display. (detect_wm)"));
+	}
 
 	return;
 }
@@ -634,13 +599,15 @@ void detect_gtk(char *str1, char *str2, char *str3)
 	pclose(gtk_file);
 
 	if (STREQ(gtk3_str, "Unknown"))
-		snprintf(str1, MAX_STRLEN, "%s (GTK2), %s (Icons)", gtk2_str,
-				gtk_icons_str);
+		snprintf(str1, MAX_STRLEN, "%s (%s2), %s (%s)", gtk2_str,
+				            _("GTK"), gtk_icons_str, _("Icons"));
+
 	else if (STREQ(gtk2_str, "Unknown"))
-		snprintf(str1, MAX_STRLEN, "%s (GTK3), %s (Icons)", gtk3_str,
-				gtk_icons_str);
+		snprintf(str1, MAX_STRLEN, "%s (%s3), %s (%s)", gtk3_str,
+				            _("GTK"), gtk_icons_str, _("Icons"));
 	else
-		snprintf(str1, MAX_STRLEN, "%s (GTK2), %s (GTK3)", gtk2_str, gtk3_str);
+		snprintf(str1, MAX_STRLEN, "%s (%s2), %s (%s3)", gtk2_str,
+			                         _("GTK"), gtk3_str, _("GTK"));
 
 	snprintf(str2, MAX_STRLEN, "%s", gtk_icons_str);
 	snprintf(str3, MAX_STRLEN, "%s", font_str);

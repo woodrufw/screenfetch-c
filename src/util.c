@@ -16,6 +16,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <regex.h>
+#include <inttypes.h>
 
 /* program includes */
 #include "misc.h"
@@ -26,17 +27,23 @@
 	#include <Windows.h>
 #endif
 
+#if defined HAVE_X11_XLIB_H && defined HAVE_JPEGLIB_H
+	#include <X11/Xlib.h>
+	#include <X11/Xutil.h>
+	#include <jpeglib.h>
+#endif
+
 /*	popen_raw_shell_version
 	get the raw shell version line and workaround
 	the problem when the shell version has:
 	GNU bash, version x.x.x(x)-release (x86_64-unknown-linux-gnu)
 	Even if the shell version is x.x.xx(x) it will be handled properly
 */
-void popen_raw_shell_version(char *str1, char *str2)
+void popen_raw_shell_version(const char *str1, const char *str2)
 {
 	FILE *shell_file;
 	char vers_arr[MAX_STRLEN], temp_arr[MAX_STRLEN];
-	unsigned short int x = 0, z = 0;
+	uint_fast16_t x = 0, z = 0;
 
 	shell_file = popen(str1, "r");
 	fgets(vers_arr, MAX_STRLEN, shell_file);
@@ -137,12 +144,12 @@ char *safe_strncpy(char *destination, const char *source, size_t num)
 	CAVEAT: uptime MUST be in seconds
 	--
 */
-void split_uptime(long uptime, unsigned int *secs, unsigned int *mins, unsigned int *hrs, unsigned int *days)
+void split_uptime(long uptime, uint_least32_t *secs, uint_least32_t *mins, uint_least32_t *hrs, uint_least32_t *days)
 {
-	*secs = (unsigned int) uptime % 60;
-	*mins = (unsigned int) (uptime / 60) % 60;
-	*hrs = (unsigned int) (uptime / 3600) % 24;
-	*days = (unsigned int) (uptime / 86400);
+	*secs = (uint_least32_t) uptime % 60;
+	*mins = (uint_least32_t) (uptime / 60) % 60;
+	*hrs  = (uint_least32_t) (uptime / 3600) % 24;
+	*days = (uint_least32_t) (uptime / 86400);
 
 	return;
 }
@@ -152,13 +159,100 @@ void split_uptime(long uptime, unsigned int *secs, unsigned int *mins, unsigned 
 */
 void take_screenshot(bool verbose, char *monitor_res)
 {
+	char time_str[MAX_STRLEN], shot_location[MAX_STRLEN];
+	time_t t = time(NULL);
+	strftime(time_str, MAX_STRLEN, "%Y-%m-%d-%H%M%S", localtime(&t));
+
+/* not everyone have `scrot' */
+#if defined HAVE_X11_XLIB_H && defined HAVE_JPEGLIB_H
+
+	if (!STREQ(res_str, "No X Server"))
+	{
+		printf("%s", "Taking shot in 3..");
+		fflush(stdout);
+		sleep(1);
+		printf("%s", "2..");
+		fflush(stdout);
+		sleep(1);
+		printf("%s", "1..");
+		fflush(stdout);
+		sleep(1);
+		printf("%s\n", "0");
+
+		uint_least32_t pixel;
+		uint_fast16_t height, width, x, y;
+		struct jpeg_compress_struct instance;
+		struct jpeg_error_mgr jerr;
+
+		JSAMPROW row_ptr;
+		Display *disp  = XOpenDisplay(NULL);
+		Screen *screen = ScreenOfDisplay(disp, DefaultScreen(disp));
+		Window root    = RootWindow(disp, XScreenNumberOfScreen(screen));
+		width  		   = WidthOfScreen(screen);
+		height 		   = HeightOfScreen(screen);
+
+		XImage *img = XGetImage(disp, root, 0, 0, width, height, XAllPlanes(), ZPixmap);
+
+		sprintf(shot_location, "%s/screenfetch-%s_%s.png",
+					getenv("HOME"), time_str, monitor_res);
+
+		FILE *file = fopen(shot_location, "wb");
+
+		char *tmp = malloc(sizeof(char)*3*width*height);
+
+		for (y = 0; y < height; y++)
+		{
+			for (x = 0; x < width; x++)
+			{
+				pixel = XGetPixel(img,x,y);
+				tmp[y*width*3+x*3+0] = (pixel>>16);
+				tmp[y*width*3+x*3+1] = ((pixel&0x00ff00)>>8);
+				tmp[y*width*3+x*3+2] = (pixel&0x0000ff);
+			}
+		}
+
+		instance.err = jpeg_std_error(&jerr);
+		jpeg_create_compress(&instance);
+		jpeg_stdio_dest(&instance, file);
+
+		instance.image_width	  = width;
+		instance.image_height	  = height;
+		instance.input_components = 3;
+		instance.in_color_space   = JCS_RGB;
+
+		jpeg_set_defaults(&instance);
+		jpeg_set_quality(&instance, 100, TRUE);
+		jpeg_start_compress(&instance, TRUE);
+
+		while (instance.next_scanline < instance.image_height)
+		{
+			row_ptr = (JSAMPROW)\
+			&tmp[instance.next_scanline*(img->depth>>3)*width];
+			jpeg_write_scanlines(&instance, &row_ptr, 1);
+		}
+
+		free(tmp);
+		jpeg_finish_compress(&instance);
+		fclose(file);
+
+		XDestroyImage(img);
+		XCloseDisplay(disp);
+	}
+	else
+	{
+		ERR_REPORT(_("No X server, aborting the creation of screenshot."));
+		return;
+	}
+
+	if (FILE_EXISTS(shot_location) && verbose)
+		VERBOSE_OUT(_("Screenshot successfully saved."), "");
+
+#else
+
 #if !defined(__CYGWIN__)
 	int call_status = 1;
-	char file_loc[MAX_STRLEN+MAX_STRLEN];
-    char time_str[MAX_STRLEN], shot_location[MAX_STRLEN], shot_str[MAX_STRLEN+MAX_STRLEN];
-    time_t t = time(NULL);
-    strftime(time_str, MAX_STRLEN, "%Y-%m-%d-%H%M%S", localtime(&t));
-    sprintf(shot_location, "/screenfetch-%s_%s.png", time_str, monitor_res);
+	char shot_str[MAX_STRLEN+MAX_STRLEN], file_loc[MAX_STRLEN+MAX_STRLEN];
+	sprintf(shot_location, "/screenfetch-%s_%s.png", time_str, monitor_res);
 #endif
 
 	printf("%s", "Taking shot in 3..");
@@ -177,7 +271,7 @@ void take_screenshot(bool verbose, char *monitor_res)
 	keybd_event(VK_SNAPSHOT, 0, 0, 0);
 
 	if (verbose)
-		VERBOSE_OUT("Screenshot has been saved to the clipboard.", "");
+		VERBOSE_OUT(_("Screenshot has been saved to the clipboard."), "");
 
 	/* NOT FINSISHED - HBITMAP needs to be saved
 	HDC screen_dc = GetDC(NULL);
@@ -197,23 +291,23 @@ void take_screenshot(bool verbose, char *monitor_res)
 	*/
 #elif defined(__APPLE__) && defined(__MACH__)
 		sprintf(shot_str, "screencapture -x ~%s 2> /dev/null", shot_location);
-		call_status = system(shot_str);
 #else
 		sprintf(shot_str, "scrot ~%s 2> /dev/null", shot_location);
-		call_status = system(shot_str);
 #endif
 
 #if !defined(__CYGWIN__)
+	call_status = system(shot_str);
 	safe_strncpy(file_loc, getenv("HOME"), MAX_STRLEN);
 	strncat(file_loc, shot_location, MAX_STRLEN);
 
 	if (FILE_EXISTS(file_loc) && verbose)
-		VERBOSE_OUT("Screenshot successfully saved.", "");
+		VERBOSE_OUT(_("Screenshot successfully saved."), "");
 
 	else if (call_status && error)
-		ERR_REPORT("Problem saving screenshot.");
+		ERR_REPORT(_("Problem saving screenshot."));
 
 #endif
+#endif /* xlib_h, jpeg_h */
 
 	return;
 }

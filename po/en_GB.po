@@ -1,69 +1,334 @@
-# Testing internationalization, currently only
-# few strings are translated
+# src/arrays.c:60
+msgid "OS: "
+msgstr "OS: "
 
-# Open up '/etc/locale.gen' and uncomment 
-# en_GB.UTF-8 UTF-8, run 'locale-gen',
-# open up /etc/locale.conf  and add
-# LANG="en_GB.UTF-8"
-# logout & login again.
 
+# src/arrays.c:61
 msgid "Kernel: "
-msgstr "Test1: "
+msgstr "Kernel: "
 
+
+# src/arrays.c:62
+msgid "CPU: "
+msgstr "CPU: "
+
+
+# src/arrays.c:63
+msgid "GPU: "
+msgstr "GPU: "
+
+
+# src/arrays.c:64
+msgid "SHELL: "
+msgstr "SHELL: "
+
+
+# src/arrays.c:65
+msgid "Packages: "
+msgstr "Packages: "
+
+
+# src/arrays.c:66
+msgid "Disk: "
+msgstr "Disk: "
+
+
+# src/arrays.c:67
+msgid "Memory: "
+msgstr "Memory: "
+
+
+# src/arrays.c:68
+msgid "Uptime: "
+msgstr "Uptime: "
+
+
+# src/arrays.c:69
+msgid "Resolution: "
+msgstr "Resolution: "
+
+
+# src/arrays.c:70
+msgid "DE: "
+msgstr "DE: "
+
+
+# src/arrays.c:71
+msgid "WM: "
+msgstr "WM: "
+
+
+# src/arrays.c:72
+msgid "WM Theme: "
+msgstr "WM Theme: "
+
+
+# src/arrays.c:73
+msgid "GTK: "
+msgstr "GTK: "
+
+
+# src/arrays.c:74
+msgid "Icon Theme: "
+msgstr "Icon Theme: "
+
+
+# src/arrays.c:75
 msgid "Font: "
-msgstr "Test2: "
+msgstr "Font: "
 
-msgid "Shell: "
-msgstr "Test3: "
 
-msgid "Enable verbosity during output."
-msgstr "Translation test 1"
-
-msgid "Take a screenshot."
-msgstr "Translation test 2"
-
-msgid "Print output without a logo."
-msgstr "Translation test 3"
-
-msgid "Suppress error output."
-msgstr "Translation test 4"
-
-msgid "Print output in portrait mode."
-msgstr "Translation test 5"
-
-msgid "Output only DISTRO's logo."
-msgstr "Translation test 6"
-
-msgid "Print output with DISTRO's logo."
-msgstr "Translation test 7"
-
+# src/parser.c:23
 msgid "Display computer information and an ASCII logo"
-msgstr "Translation test 8"
+msgstr "Display computer information and an ASCII logo"
+
+
+# src/parser.c:31
+msgid "Enable verbosity during output."
+msgstr "Enable verbosity during output."
+
+
+# src/parser.c:33
+msgid "Take a screenshot."
+msgstr "Take a screenshot."
+
+
+# src/parser.c:35
+msgid "Print output without a logo."
+msgstr "Print output without a logo."
+
+
+# src/parser.c:37
+msgid "Suppress error output."
+msgstr "Suppress error output."
+
+
+# src/parser.c:39
+msgid "Print output in portrait mode."
+msgstr "Print output in portrait mode."
+
+
+# src/parser.c:41
+msgid "Output only DISTRO's logo."
+msgstr "Output only DISTRO's logo."
+
+
+# src/parser.c:43
+msgid "Print output with DISTRO's logo."
+msgstr "Print output with DISTRO's logo."
+
+
+# src/parser.c:29
+msgid "Main operation mode:"
+msgstr "Main operation mode:"
+
+
+# src/disp.c:115
+msgid "Could not find a logo for the distro."
+msgstr "Could not find a logo for the distro."
+
+
+# src/util.c:181
+msgid "Screenshot has been saved to the clipboard."
+msgstr "Screenshot has been saved to the clipboard."
+
+
+# src/util.c:212
+msgid "Screenshot successfully saved."
+msgstr "Screenshot successfully saved."
+
+
+# src/util.c:215
+msgid "Problem saving screenshot."
+msgstr "Problem saving screenshot."
+
+
+# src/util.c
+msgid "No X server, aborting the creation of screenshot."
+msgstr "No X server, aborting the creation of screenshot."
+
+
+# src/misc.h:101
+msgid "Error"
+msgstr "Error"
+
+
+# src/plat/*/detect.c:127
+msgid "Failed to detect a Linux distro (1)."
+msgstr "Failed to detect a Linux distro (1)."
+
+
+# src/plat/*/detect.c:135
+msgid "Failed to detect a Linux distro (2)."
+msgstr "Failed to detect a Linux distro (2)."
+
+
+# src/plat/*/detect.c:157
+msgid "Could not detect username."
+msgstr "Could not detect username."
+
+
+# src/plat/*/detect.c:163
+msgid "Could not detect hostname."
+msgstr "Could not detect hostname."
+
+
+# src/plat/*/detect.c
+msgid "No X Server"
+msgstr "No X Server"
+
+
+# src/plat/*/detect.c
+msgid "Not Found"
+msgstr "Not Found"
+
+
+# src/plat/*/detect.c:184
+msgid "Could not detect kernel information."
+msgstr "Could not detect kernel information."
+
+
+# src/plat/*/detect.c:212
+msgid "Could not detect system uptime."
+msgstr "Could not detect system uptime."
+
+
+# src/plat/*/detect.c:228
+msgid "Failure while globbing packages."
+msgstr "Failure while globbing packages."
+
+
+# src/plat/*/detect.c:296
+msgid "Packages cannot be detected on an unknown Linux distro."
+msgstr "Packages cannot be detected on an unknown Linux distro."
+
+
+# src/plat/*/detect.c:323
+msgid "Fatal error while reading /proc/cpuinfo"
+msgstr "Fatal error while reading /proc/cpuinfo"
+
+
+# src/plat/bsd/detect.c
+msgid "Could not find packages on current OS."
+msgstr "Could not find packages on current OS."
+
+
+# src/plat/*/detect.c:331
+msgid "Fatal error matching in /proc/cpuinfo"
+msgstr "Fatal error matching in /proc/cpuinfo"
+
+
+# src/plat/*/detect.c:350
+msgid "Failed to open /proc/cpuinfo. Ancient Linux kernel?"
+msgstr "Failed to open /proc/cpuinfo. Ancient Linux kernel?"
+
+
+# src/plat/*/detect.c:382
+msgid "Failed to create OpenGL context."
+msgstr "Failed to create OpenGL context."
+
+
+# src/plat/*/detect.c:387
+msgid "Failed to select a proper X visual."
+msgstr "Failed to select a proper X visual."
+
+
+# src/plat/*/detect.c:394
+msgid "Could not open an X display (detect_gpu)."
+msgstr "Could not open an X display (detect_gpu)."
+
+
+# src/plat/*/detect.c:418
+msgid "Could not stat $HOME for filesystem statistics."
+msgstr "Could not stat $HOME for filesystem statistics."
+
+
+# src/plat/*/detect.c:459
+msgid "Could not detect a shell - $SHELL not defined."
+msgstr "Could not detect a shell - $SHELL not defined."
+
+
+# src/plat/*/detect.c:512
+msgid "Could not open an X display (detect_res)"
+msgstr "Could not open an X display (detect_res)"
+
+
+# src/plat/*/detect.c:544
+msgid "No desktop environment found."
+msgstr "No desktop environment found."
+
+
+# src/plat/*/detect.c:579
+msgid "No _NET_WM_NAME property found."
+msgstr "No _NET_WM_NAME property found."
+
+
+# src/plat/*/detect.c:582
+msgid "Missing script. (detect_wm_theme)"
+msgstr "Missing script. (detect_wm_theme)"
+
+
+# src/plat/*/detect.c:584
+msgid "No WM detected (non-EWMH compliant?)"
+msgstr "No WM detected (non-EWMH compliant?)"
+
+
+# src/plat/*/detect.c:589
+msgid "Could not open an X display. (detect_wm)"
+msgstr "Could not open an X display. (detect_wm)"
+
+
+# src/plat/*/detect.c:627
+msgid "Missing script. (detect_gtk)"
+msgstr "Missing script. (detect_gtk)"
+
+
+# src/plat/*/detect.c:580,625,632,635
+msgid "Missing script"
+msgstr "Missing script"
+
+
+# src/plat/*/detect.c:639,642,645
+msgid "GTK"
+msgstr "GTK"
+
+
+# src/plat/*/detect.c:642,645
+msgid "Icons"
+msgstr "Icons"
+
 
 msgid "Print program version"
-msgstr "Translation test 9"
+msgstr "Print program version"
+
 
 msgid "Give a short usage message"
-msgstr "Translation test 10"
+msgstr "Give a short usage message"
+
 
 msgid "Give this help list"
-msgstr "Translation test 11"
+msgstr "Give this help list"
+
 
 msgid "Usage:"
-msgstr "Translation test 12"
+msgstr "Usage:"
+
 
 msgid " [OPTION...]"
-msgstr "Translation test 13"
+msgstr " [OPTION...]"
 
-msgid "Main operation mode:"
-msgstr "Translation test 14"
 
 msgid ""
 "Mandatory or optional arguments to long options are also mandatory or "
 "optional for any corresponding short options."
 msgstr ""
-"Translation test 15"
-"Translation test 16"
+"Mandatory or optional arguments to long options are also mandatory or "
+"optional for any corresponding short options."
+
 
 msgid "Report bugs to %s.\n"
-msgstr "Translation test 17\n"
+msgstr "Report bugs to %s.\n"
+
+
+msgid "Unknown"
+msgstr "Unknown"

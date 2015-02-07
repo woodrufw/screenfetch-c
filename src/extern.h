@@ -9,48 +9,6 @@
 #ifndef SCREENFETCH_C_EXTERN_H
 #define SCREENFETCH_C_EXTERN_H
 
-/* logos.c module */
-extern char *oldarch_logo[];
-extern char *arch_logo[];
-extern char *mint_logo[];
-extern char *lmde_logo[];
-extern char *ubuntu_logo[];
-extern char *debian_logo[];
-extern char *crunchbang_logo[];
-extern char *gentoo_logo[];
-extern char *funtoo_logo[];
-extern char *fedora_logo[];
-extern char *freebsd_logo[];
-extern char *openbsd_logo[];
-extern char *dragonflybsd_logo[];
-extern char *netbsd_logo[];
-extern char *mandriva_mandrake_logo[];
-extern char *opensuse_logo[];
-extern char *slackware_logo[];
-extern char *redhat_logo[];
-extern char *frugalware_logo[];
-extern char *peppermint_logo[];
-extern char *solusos_logo[];
-extern char *mageia_logo[];
-extern char *parabolagnu_linuxlibre_logo[];
-extern char *viperr_logo[];
-extern char *linuxdeepin_logo[];
-extern char *chakra_logo[];
-extern char *fuduntu_logo[];
-extern char *macosx_logo[];
-extern char *windows_logo[];
-extern char *trisquel_logo[];
-extern char *manjaro_logo[];
-extern char *elementaryos_logo[];
-extern char *scientificlinux_logo[];
-extern char *backtracklinux_logo[];
-extern char *kalilinux_logo[];
-extern char *sabayon_logo[];
-extern char *android_logo[];
-extern char *linux_logo[];
-extern char *solaris_logo[];
-extern char *angstrom_logo[];
-
 
 /* flags.c module */
 extern bool error;
@@ -59,13 +17,13 @@ extern bool verbose;
 extern bool main_logo;
 extern bool screenshot;
 extern bool portrait;
-extern bool logo_only_requested;
+extern bool break_requested;
 
 
 /* arrays.c module */
 #define MAX_STR 128
 extern char *detected_arr[];
-extern char *detected_arr_names[];
+extern const char *detected_arr_names[];
 extern char host_str[MAX_STR];
 extern char distro_str[MAX_STR];
 extern char kernel_str[MAX_STR];
@@ -85,8 +43,47 @@ extern char icon_str[MAX_STR];
 extern char font_str[MAX_STR];
 extern char UseR[MAX_STR];
 extern char HosT[MAX_STR];
-extern char *mult_shell_arr[][2];
-extern const size_t shells_num;
 extern char given_distro_str[MAX_STR];
+extern const char *oldarch_logo[];
+extern const char *arch_logo[];
+extern const char *mint_logo[];
+extern const char *lmde_logo[];
+extern const char *ubuntu_logo[];
+extern const char *debian_logo[];
+extern const char *crunchbang_logo[];
+extern const char *gentoo_logo[];
+extern const char *funtoo_logo[];
+extern const char *fedora_logo[];
+extern const char *freebsd_logo[];
+extern const char *openbsd_logo[];
+extern const char *dragonflybsd_logo[];
+extern const char *netbsd_logo[];
+extern const char *mandriva_mandrake_logo[];
+extern const char *opensuse_logo[];
+extern const char *slackware_logo[];
+extern const char *redhat_logo[];
+extern const char *frugalware_logo[];
+extern const char *peppermint_logo[];
+extern const char *solusos_logo[];
+extern const char *mageia_logo[];
+extern const char *parabolagnu_linuxlibre_logo[];
+extern const char *viperr_logo[];
+extern const char *linuxdeepin_logo[];
+extern const char *chakra_logo[];
+extern const char *fuduntu_logo[];
+extern const char *macosx_logo[];
+extern const char *windows_logo[];
+extern const char *trisquel_logo[];
+extern const char *manjaro_logo[];
+extern const char *elementaryos_logo[];
+extern const char *scientificlinux_logo[];
+extern const char *backtracklinux_logo[];
+extern const char *kalilinux_logo[];
+extern const char *sabayon_logo[];
+extern const char *android_logo[];
+extern const char *linux_logo[];
+extern const char *solaris_logo[];
+extern const char *angstrom_logo[];
+
 
 #endif /* SCREENFETCH_C_EXTERN_H */

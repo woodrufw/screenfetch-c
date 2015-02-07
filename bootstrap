@@ -2,15 +2,8 @@
 # Author: Aaron Caffrey
 # Like the rest of screenfetch-c, this file is licensed under the MIT license.
 
-
 # ./bootstrap && ./configure --prefix=/usr && make
 # sudo make install
-
-# If you can make AM_GNU_GETTEXT working,
-# then remove IT_PROG_INTLTOOL and AM_GLIB_GNU_GETTEXT
-# also remove the for loop below
-#AM_GNU_GETTEXT([external], [need-formatstring-macros])
-#AM_GNU_GETTEXT_VERSION([0.16])
 
 prog_name='screenfetch2'
 prog_ver='1.4.0'
@@ -18,10 +11,18 @@ prog_ver='1.4.0'
 
 # configure.ac
 configure_ac=("# This file is processed by autoconf to create a configure script
-AC_INIT(["${prog_name}"], "${prog_ver}")
-AM_INIT_AUTOMAKE([1.10 -Wall no-define foreign subdir-objects dist-xz no-dist-gzip])
+AC_INIT(["${prog_name}"], ["${prog_ver}"])
+AC_CONFIG_AUX_DIR([temp_dir])
+AM_CONFIG_HEADER(src/config.h)
+AC_CONFIG_MACRO_DIR([m4])
+AM_INIT_AUTOMAKE([1.11 -Wall no-define foreign subdir-objects dist-xz no-dist-gzip std-options])
 
+AM_SILENT_RULES([yes])
 AC_PROG_CC_STDC
+AC_EXEEXT
+AC_C_CONST
+AC_HEADER_STDC
+AM_PROG_CC_C_O
 
 IT_PROG_INTLTOOL([0.40.0])
 AM_GLIB_GNU_GETTEXT
@@ -29,9 +30,17 @@ AM_GLIB_GNU_GETTEXT
 GETTEXT_PACKAGE="${prog_name}"
 AC_SUBST(GETTEXT_PACKAGE)
 
+AC_CHECK_HEADERS(stdio.h stdlib.h stdbool.h \\
+string.h unistd.h time.h ctype.h regex.h argp.h \\
+sys/utsname.h inttypes.h jpeglib.h)
+
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "\"${prog_name}\"", [Gettext package.])
+AC_DEFINE_UNQUOTED(PROG_VERSION, "\"${prog_ver}\"", [The current version])
+
 # The linker flags tests in m4 dir
-X11_TEST
-OPENGL_TEST
+TEST_X11
+TEST_OPENGL
+TEST_JPEG
 
 rm -f po/LINGUAS
 for po_file in \`ls --color=never po/*.po | sort\`; do 
@@ -41,6 +50,7 @@ done
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/scripts/Makefile
 po/Makefile.in
 ])
 
@@ -53,35 +63,36 @@ echo")
 
 # Makefile.am
 main_makefile=('
-ACLOCAL_AMFLAGS = -I m4
-
 SUBDIRS = \
     src   \
-    po
+    po    \
+    src/scripts
 
 man_MANS = \
     screenfetch-c.1
 ')
 
 
-# add tests for *BSD, Macintosh, Sun
+# add tests for *BSD
 uname_test=`uname -s`
+mac_win_cppflagz=''
+mac_ldflagz=''
 if test "$uname_test" = "Linux"; then
     plat_module='plat/linux/detect.c'
+
+elif test "$uname_test" = "Darwin"; then
+    plat_module='plat/darwin/detect.c'
+    mac_win_cppflagz='-D_DARWIN_C_SOURCE -D_DARWIN_USE_64_BIT_INODE'
+    mac_ldflagz='-framework CoreServices'
+
+elif test "$uname_test" = "SunOS"; then
+    plat_module='plat/sun/detect.c'
 fi
 # src/Makefile.am
-src_files=('arrays.c disp.c
-            flags.c logos.c 
-            main.c parser.c 
-            util.c extern.h 
-            gettext.h misc.h 
-            prototypes.h structs.h
-')
+src_files=(`ls --color=never src/*.{c,h} | awk '{gsub("src/","");print}'`)
 src_makefile=('AM_CPPFLAGS = \
     -DLOCALEDIR=\"$(datadir)/locale\" \
-    -DGETTEXT_PACKAGE=\"'${prog_name}'\" \
-    -D_POSIX_C_SOURCE=200112L \
-    -DPROG_VERSION=\"'${prog_ver}'\"
+    -D_POSIX_C_SOURCE=200112L '${mac_win_cppflagz}'
 
 bin_PROGRAMS = \
     '${prog_name}'
@@ -91,10 +102,18 @@ bin_PROGRAMS = \
     -Wformat -Wunused-variable \
     -pedantic
 
-'${prog_name}'_LDADD = $(X_LIBS) $(GL_LIBS)
+'${prog_name}'_LDADD = $(X_LIBS) $(GL_LIBS) $(JPEG_LIBS) '${mac_ldflagz}'
 
-'${prog_name}'_SOURCES = '${src_files[@]} ${plat_module}'')
+'${prog_name}'_SOURCES = '${src_files[@]} 
+ ${plat_module}' plat/common.c
+')
 
+
+# src/scripts/Makefile.am
+src_scripts_makefile=('
+bin_SCRIPTS = \
+'`ls --color=never src/scripts`'
+')
 
 
 cat <<EOF > configure.ac
@@ -109,10 +128,14 @@ cat <<EOF > src/Makefile.am
 ${src_makefile[@]}
 EOF
 
+cat <<EOF > src/scripts/Makefile.am
+${src_scripts_makefile[@]}
+EOF
+
 
 # Add all modules that will be translated
 # \nsrc/module_name.c
-printf '%b' 'src/main.c\nsrc/parser.c' > 'po/POTFILES.in'
+printf '%b' 'src/main.c\nsrc/parser.c\nsrc/disp.c\nsrc/plat/common.c' > 'po/POTFILES.in'
 
 
 #screenfetch-c.1

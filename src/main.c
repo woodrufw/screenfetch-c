@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <inttypes.h>
 
 /* program includes */
 #include "misc.h"
@@ -32,9 +33,10 @@ int main(int argc, char **argv)
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
 
-	Init_parseR(argc, argv);
+	if (argc > 1)
+		Init_parseR(argc, argv);
 
-	if (!logo_only_requested)
+	if (!break_requested)
 	{
 		detect_distro(distro_str);
 		detect_host();

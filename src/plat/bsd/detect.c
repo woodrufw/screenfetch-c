@@ -1,5 +1,6 @@
 /*	detect.c
  *	Author: William Woodruff
+ *  Edited by: Aaron Caffrey
  *	-------------
  *
  *	The detection functions used by screenfetch-c on *BSD are implemented here.
@@ -12,7 +13,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <inttypes.h>
 
 /* BSD-specific includes */
 #include <sys/statvfs.h>
@@ -35,12 +36,12 @@
 	detects the computer's distribution
 	argument char *str: the char array to be filled with the distro name
 */
-void detect_distro(char *str)
+void detect_distro(char *str1)
 {
 	struct utsname distro_info;
 
 	uname(&distro_info);
-	snprintf(str, MAX_STRLEN, "%s", distro_info.sysname);
+	snprintf(str1, MAX_STRLEN, "%s", distro_info.sysname);
 
 	return;
 }
@@ -49,7 +50,7 @@ void detect_distro(char *str)
 	detects the computer's hostname and active user and formats them
 	argument char *str: the char array to be filled with the host info
 */
-void detect_host(char *str)
+void detect_host(void)
 {
 	char *given_user = "Unknown";
 	char given_host[MAX_STRLEN] = "Unknown";
@@ -59,7 +60,8 @@ void detect_host(char *str)
 	uname(&host_info);
 	safe_strncpy(given_host, host_info.nodename, MAX_STRLEN);
 
-	snprintf(str, MAX_STRLEN, "%s@%s", given_user, given_host);
+	snprintf(UseR, MAX_STRLEN, "%s", given_user);
+	snprintf(HosT, MAX_STRLEN, "%s", given_host);
 
 	return;
 }
@@ -89,10 +91,7 @@ void detect_uptime(char *str)
 	long currtime = 0, boottime = 0;
 #endif
 	FILE *uptime_file;
-	int secs = 0;
-	int mins = 0;
-	int hrs = 0;
-	int days = 0;
+	uint_least32_t secs = 0, mins = 0, hrs = 0, days = 0;
 
 #if defined(__NetBSD__)
 	uptime_file = popen("cut -d ' ' -f 1 < /proc/uptime", "r");
@@ -120,9 +119,13 @@ void detect_uptime(char *str)
 	split_uptime(uptime, &secs, &mins, &hrs, &days);
 
 	if (days > 0)
-		snprintf(str, MAX_STRLEN, "%dd %dh %dm %ds", days, hrs, mins, secs);
+		snprintf(str, MAX_STRLEN,
+			"%"PRIuLEAST32"d %"PRIuLEAST32"h %"PRIuLEAST32"m %"PRIuLEAST32"s",
+			days, hrs, mins, secs);
 	else
-		snprintf(str, MAX_STRLEN, "%dh %dm %ds", hrs, mins, secs);
+		snprintf(str, MAX_STRLEN,
+			"%"PRIuLEAST32"h %"PRIuLEAST32"m %"PRIuLEAST32"s",
+			hrs, mins, secs);
 
 	return;
 }
@@ -133,7 +136,7 @@ void detect_uptime(char *str)
 */
 void detect_pkgs(char *str, const char *distro_str)
 {
-	int packages = 0;
+	uint_fast16_t packages = 0;
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
 	FILE *pkgs_file;
 #endif
@@ -141,20 +144,20 @@ void detect_pkgs(char *str, const char *distro_str)
 
 #if defined(__FreeBSD__)
 	pkgs_file = popen("pkg info | wc -l", "r");
-	fscanf(pkgs_file, "%d", &packages);
+	fscanf(pkgs_file, "%"SCNuFAST16, &packages);
 	pclose(pkgs_file);
+	snprintf(str, MAX_STRLEN, "%"PRIuFAST16, packages);
 #elif defined(__OpenBSD__)
 	pkgs_file = popen("pkg_info | wc -l", "r");
-	fscanf(pkgs_file, "%d", &packages);
+	fscanf(pkgs_file, "%"SCNuFAST16, &packages);
 	pclose(pkgs_file);
+	snprintf(str, MAX_STRLEN, "%"PRIuFAST16, packages);
 #else
 	safe_strncpy(str, "Not Found", MAX_STRLEN);
 
 	if (error)
-		ERR_REPORT("Could not find packages on current OS.");
+		ERR_REPORT(_("Could not find packages on current OS."));
 #endif
-
-	snprintf(str, MAX_STRLEN, "%d", packages);
 
 	return;
 }
@@ -178,6 +181,8 @@ void detect_cpu(char *str)
 	fgets(str, MAX_STRLEN, cpu_file);
 	pclose(cpu_file);
 #endif
+
+	remove_excess_cpu_txt(str);
 
 	return;
 }
@@ -204,7 +209,7 @@ void detect_gpu(char *str)
 void detect_disk(char *str)
 {
 	struct statvfs disk_info;
-	unsigned long disk_total = 0, disk_used = 0, disk_percentage = 0;
+	uintmax_t disk_total = 0, disk_used = 0, disk_percentage = 0;
 
 	if (!(statvfs(getenv("HOME"), &disk_info)))
 	{
@@ -212,13 +217,11 @@ void detect_disk(char *str)
 		disk_used = (((disk_info.f_blocks - disk_info.f_bfree)
 					* disk_info.f_bsize) / GB);
 		disk_percentage = (((float) disk_used / disk_total) * 100);
-		snprintf(str, MAX_STRLEN, "%ldG / %ldG (%ld%%)", disk_used, disk_total,
-				disk_percentage);
+		snprintf(str, MAX_STRLEN, "%"PRIuMAX"G / %"PRIuMAX"G (%"PRIuMAX"%%)",
+			disk_used, disk_total, disk_percentage);
 	}
 	else if (error)
-	{
-		ERR_REPORT("Could not stat $HOME for filesystem statistics.");
-	}
+		ERR_REPORT(_("Could not stat $HOME for filesystem statistics."));
 
 	return;
 }
@@ -230,82 +233,15 @@ void detect_disk(char *str)
 void detect_mem(char *str)
 {
 	FILE *mem_file;
-	long long total_mem = 0;
+	uintmax_t total_mem = 0;
 
 	mem_file = popen("sysctl -n hw.physmem", "r");
-	fscanf(mem_file, "%lld", &total_mem);
+	fscanf(mem_file, "%"SCNuMAX, &total_mem);
 	pclose(mem_file);
 
-	total_mem /= (long) MB;
+	total_mem /= (uintmax_t) MB;
 
-	snprintf(str, MAX_STRLEN, "%lld%s", total_mem, "MB");
-
-	return;
-}
-
-/*	detect_shell
-	detects the shell currently running on the computer
-	argument char *str: the char array to be filled with the shell name and version
-	--
-	CAVEAT: shell version detection relies on the standard versioning format for 
-	each shell. If any shell's older (or newer versions) suddenly begin to use a new
-	scheme, the version may be displayed incorrectly.
-	--
-*/
-void detect_shell(char *str)
-{
-	FILE *shell_file;
-	char *shell_name;
-	char vers_str[MAX_STRLEN];
-
-	shell_name = getenv("SHELL");
-
-	if (shell_name == NULL)
-	{
-		if (error)
-			ERR_REPORT("Could not detect a shell.");
-
-		return;
-	}
-
-	if (STREQ(shell_name, "/bin/sh"))
-	{
-		safe_strncpy(str, "POSIX sh", MAX_STRLEN);
-	}
-	else if (strstr(shell_name, "bash"))
-	{
-		shell_file = popen("bash --version | head -1", "r");
-		fgets(vers_str, MAX_STRLEN, shell_file);
-		snprintf(str, MAX_STRLEN, "bash %.*s", 17, vers_str + 10);
-		pclose(shell_file);
-	}
-	else if (strstr(shell_name, "zsh"))
-	{
-		shell_file = popen("zsh --version", "r");
-		fgets(vers_str, MAX_STRLEN, shell_file);	
-		snprintf(str, MAX_STRLEN, "zsh %.*s", 5, vers_str + 4);
-		pclose(shell_file);
-	}
-	else if (strstr(shell_name, "csh"))
-	{
-		shell_file = popen("csh --version | head -1", "r");
-		fgets(vers_str, MAX_STRLEN, shell_file);
-		snprintf(str, MAX_STRLEN, "csh %.*s", 7, vers_str + 5);
-		pclose(shell_file);
-	}
-	else if (strstr(shell_name, "fish"))
-	{
-		shell_file = popen("fish --version", "r");
-		fgets(vers_str, MAX_STRLEN, shell_file);
-		snprintf(str, MAX_STRLEN, "fish %.*s", 13, vers_str + 6);
-		pclose(shell_file);
-	}
-	else if (strstr(shell_name, "dash") || strstr(shell_name, "ash")
-			|| strstr(shell_name, "ksh"))
-	{
-		/* i don't have a version detection system for these, yet */
-		safe_strncpy(str, shell_name, MAX_STRLEN);
-	}
+	snprintf(str, MAX_STRLEN, "%"PRIuMAX"%s", total_mem, "MB");
 
 	return;
 }
@@ -326,6 +262,9 @@ void detect_res(char *str)
 	if (STREQ(str, "Unknown"))
 	{
 		safe_strncpy(str, "No X Server", MAX_STRLEN);
+
+		if (error)
+			ERR_REPORT(_("Could not open an X display (detect_res)"));
 	}
 
 	return;
@@ -344,30 +283,24 @@ void detect_de(char *str)
 	char *curr_de;
 
 	if ((curr_de = getenv("XDG_CURRENT_DESKTOP")))
-	{
 		safe_strncpy(str, curr_de, MAX_STRLEN);
-	}
+
 	else
 	{
 		if (getenv("GNOME_DESKTOP_SESSION_ID"))
-		{
 			safe_strncpy(str, "Gnome", MAX_STRLEN);
-		}
+
 		else if (getenv("MATE_DESKTOP_SESSION_ID"))
-		{
 			safe_strncpy(str, "MATE", MAX_STRLEN);
-		}
+
 		else if (getenv("KDE_FULL_SESSION"))
-		{
 			/*	KDE_SESSION_VERSION only exists on KDE4+, so 
 				getenv will return NULL on KDE <= 3.
 			 */
 			snprintf(str, MAX_STRLEN, "KDE%s", getenv("KDE_SESSION_VERSION"));
-		}
+
 		else if (error)
-		{
-			ERR_REPORT("No desktop environment found.");
-		}
+			ERR_REPORT(_("No desktop environment found."));
 	}
 
 	return;
@@ -422,7 +355,7 @@ void detect_wm_theme(char *str, const char *wm_str)
 	If it isn't present somewhere in the PATH, the WM Theme will be set as 'Unknown'
 	--
 */
-void detect_gtk(char *str)
+void detect_gtk(char *str1, char *str2, char *str3)
 {
 	FILE *gtk_file;
 	char gtk2_str[MAX_STRLEN] = "Unknown";
@@ -435,13 +368,18 @@ void detect_gtk(char *str)
 	pclose(gtk_file);
 
 	if (STREQ(gtk3_str, "Unknown"))
-		snprintf(str, MAX_STRLEN, "%s (GTK2), %s (Icons)", gtk2_str,
-				gtk_icons_str);
+		snprintf(str1, MAX_STRLEN, "%s (%s2), %s (%s)", gtk2_str,
+				            _("GTK"), gtk_icons_str, _("Icons"));
+
 	else if (STREQ(gtk2_str, "Unknown"))
-		snprintf(str, MAX_STRLEN, "%s (GTK3), %s (Icons)", gtk3_str,
-				gtk_icons_str);
+		snprintf(str1, MAX_STRLEN, "%s (%s3), %s (%s)", gtk3_str,
+				            _("GTK"), gtk_icons_str, _("Icons"));
 	else
-		snprintf(str, MAX_STRLEN, "%s (GTK2), %s (GTK3)", gtk2_str, gtk3_str);
+		snprintf(str1, MAX_STRLEN, "%s (%s2), %s (%s3)", gtk2_str,
+			                         _("GTK"), gtk3_str, _("GTK"));
+
+	snprintf(str2, MAX_STRLEN, "%s", gtk_icons_str);
+	snprintf(str3, MAX_STRLEN, "%s", font_str);
 
 	return;
 }
