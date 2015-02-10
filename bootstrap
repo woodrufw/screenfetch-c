@@ -32,7 +32,7 @@ AC_SUBST(GETTEXT_PACKAGE)
 
 AC_CHECK_HEADERS(stdio.h stdlib.h stdbool.h \\
 string.h unistd.h time.h ctype.h regex.h argp.h \\
-sys/utsname.h inttypes.h jpeglib.h)
+sys/utsname.h inttypes.h malloc.h)
 
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "\"${prog_name}\"", [Gettext package.])
 AC_DEFINE_UNQUOTED(PROG_VERSION, "\"${prog_ver}\"", [The current version])
@@ -73,20 +73,27 @@ man_MANS = \
 ')
 
 
-# add tests for *BSD
-uname_test=`uname -s`
 mac_win_cppflagz=''
 mac_ldflagz=''
-if test "$uname_test" = "Linux"; then
+if type -p uname > /dev/null 2>&1; then
+  uname_test=`uname -s`
+  if test "$uname_test" = "Linux"; then
     plat_module='plat/linux/detect.c'
 
-elif test "$uname_test" = "Darwin"; then
+  elif test "$uname_test" = "Darwin"; then
     plat_module='plat/darwin/detect.c'
     mac_win_cppflagz='-D_DARWIN_C_SOURCE -D_DARWIN_USE_64_BIT_INODE'
     mac_ldflagz='-framework CoreServices'
 
-elif test "$uname_test" = "SunOS"; then
+  elif test "$uname_test" = "SunOS"; then
     plat_module='plat/sun/detect.c'
+  fi
+fi
+
+# I guarantee that `machine' exists in OpenBSD
+# We don't want to rely on `uname' only
+if type -p machine > /dev/null 2>&1; then
+  plat_module='plat/bsd/detect.c'
 fi
 # src/Makefile.am
 src_files=(`ls --color=never src/*.{c,h} | awk '{gsub("src/","");print}'`)
@@ -167,7 +174,7 @@ GNU bash, csh, zsh, ksh, fish, dash, ash.
 .SH OPTIONS
 .PP
 .BR \-v ,
-.B\-\-verbose
+.B \-\-verbose
 .PP
 Enable verbose mode, which prints out detection information.
 .PP
@@ -322,6 +329,18 @@ cat <<EOF > screenfetch-c.1
 ${man_page[@]}
 EOF
 
+
+# convert the man page to human readable text
+# so we can gzip it later (if needed)
+#if type -p groff > /dev/null 2>&1 && \
+#   type -p col   > /dev/null 2>&1 && \
+#   type -p uniq  > /dev/null 2>&1 && \
+#   type -p mv    > /dev/null 2>&1; then
+
+#  groff -man -Tascii screenfetch-c.1 | col -b | uniq > scr.1
+#  mv scr.1 screenfetch-c.1
+
+#fi
 
 
 

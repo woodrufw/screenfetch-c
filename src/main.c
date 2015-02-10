@@ -38,21 +38,21 @@ int main(int argc, char **argv)
 
 	if (!break_requested)
 	{
-		detect_distro(distro_str);
+		detect_distro();
 		detect_host();
-		detect_kernel(kernel_str);
-		detect_uptime(uptime_str);
-		detect_pkgs(pkgs_str, distro_str);
-		detect_cpu(cpu_str);
-		detect_gpu(gpu_str);
-		detect_disk(disk_str);
-		detect_mem(mem_str);
-		detect_shell(shell_str);
-		detect_res(res_str);
-		detect_de(de_str);
-		detect_wm(wm_str);
-		detect_wm_theme(wm_theme_str, wm_str);
-		detect_gtk(gtk_str, icon_str, font_str);
+		detect_kernel();
+		detect_uptime();
+		detect_pkgs();
+		detect_cpu();
+		detect_gpu();
+		detect_disk();
+		detect_mem();
+		detect_shell();
+		detect_res();
+		detect_de();
+		detect_wm();
+		detect_wm_theme();
+		detect_gtk();
 
 		if (!STREQ(given_distro_str, "Unknown"))
 			safe_strncpy(distro_str, given_distro_str, MAX_STRLEN);
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 			main_text_output(false);
 
 		if (screenshot)
-			take_screenshot(verbose, res_str);
+			take_screenshot();
 	}
 	return EXIT_SUCCESS;
 }

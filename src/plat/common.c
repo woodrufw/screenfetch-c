@@ -19,9 +19,8 @@
 
 /*  detect_shell
     detects the shell currently running on the computer
-    argument char *str: the char array to be filled with the shell name and version
 */
-void detect_shell(char *str)
+void detect_shell(void)
 {
     char *shell_name;
     uint_fast16_t x = 0;
@@ -41,12 +40,10 @@ void detect_shell(char *str)
     {
         if (error)
             ERR_REPORT(_("Could not detect a shell - $SHELL not defined."));
-
-        return;
     }
 
-    if (STREQ(shell_name, "/bin/sh"))
-        safe_strncpy(str, "POSIX sh", MAX_STRLEN);
+    else if (STREQ(shell_name, "/bin/sh"))
+        safe_strncpy(shell_str, "POSIX sh", MAX_STRLEN);
 
     else
     {
@@ -60,7 +57,7 @@ void detect_shell(char *str)
         if (found_shell)
             popen_raw_shell_version(mult_shell_arr[x][0], mult_shell_arr[x][1]);
         else
-            safe_strncpy(str, shell_name, MAX_STRLEN);
+            safe_strncpy(shell_str, shell_name, MAX_STRLEN);
     }
 
     return;

@@ -35,9 +35,8 @@
 
 /*	detect_distro
 	detects the computer's distribution (OS X release)
-	argument char *str: the char array to be filled with the distro name
 */
-void detect_distro(char *str1)
+void detect_distro(void)
 {
 #if __MAC_OS_X_VERSION_MIN_REQUIRED <= 1070
 	int ver_maj, ver_min, ver_bug;
@@ -54,13 +53,13 @@ void detect_distro(char *str1)
 	Gestalt(gestaltSystemVersionMinor, (SInt32 *) &ver_min);
 	Gestalt(gestaltSystemVersionBugFix, (SInt32 *) &ver_bug);
 
-	snprintf(str1, MAX_STRLEN, "Max OS X %d.%d.%d", ver_maj, ver_min, ver_bug);
+	snprintf(distro_str, MAX_STRLEN, "Max OS X %d.%d.%d", ver_maj, ver_min, ver_bug);
 #else
 	distro_file = popen("sw_vers -productVersion | tr -d '\\n'", "r");
 	fgets(distro_name_str, MAX_STRLEN, distro_file);
 	pclose(distro_file);
 
-	snprintf(str1, MAX_STRLEN, "Mac OS X %s", distro_name_str);
+	snprintf(distro_str, MAX_STRLEN, "Mac OS X %s", distro_name_str);
 #endif
 
 	return;
@@ -68,7 +67,6 @@ void detect_distro(char *str1)
 
 /*	detect_host
 	detects the computer's hostname and active user and formats them
-	argument char *str: the char array to be filled with the host info
 */
 void detect_host(void)
 {
@@ -88,14 +86,13 @@ void detect_host(void)
 
 /*	detect_kernel
 	detects the computer's kernel
-	argument char *str: the char array to be filled with the kernel name
 */
-void detect_kernel(char *str)
+void detect_kernel(void)
 {
 	struct utsname kern_info;
 
 	uname(&kern_info);
-	snprintf(str, MAX_STRLEN, "%s %s %s", kern_info.sysname,
+	snprintf(kernel_str, MAX_STRLEN, "%s %s %s", kern_info.sysname,
 			kern_info.release, kern_info.machine);
 
 	return;
@@ -103,9 +100,8 @@ void detect_kernel(char *str)
 
 /*	detect_uptime
 	detects the computer's uptime
-	argument char *str: the char array to be filled with the uptime
 */
-void detect_uptime(char *str)
+void detect_uptime(void)
 {
 	long uptime = 0;
 	uint_least32_t secs = 0, mins = 0, hrs = 0, days = 0;
@@ -125,11 +121,11 @@ void detect_uptime(char *str)
 	split_uptime(uptime, &secs, &mins, &hrs, &days);
 
 	if (days > 0)
-		snprintf(str, MAX_STRLEN,
+		snprintf(uptime_str, MAX_STRLEN,
 			"%"PRIuLEAST32"d %"PRIuLEAST32"h %"PRIuLEAST32"m %"PRIuLEAST32"s",
 			days, hrs, mins, secs);
 	else
-		snprintf(str, MAX_STRLEN,
+		snprintf(uptime_str, MAX_STRLEN,
 			"%"PRIuLEAST32"h %"PRIuLEAST32"m %"PRIuLEAST32"s",
 			hrs, mins, secs);
 
@@ -138,9 +134,8 @@ void detect_uptime(char *str)
 
 /*	detect_pkgs
 	detects the number of packages installed on the computer
-	argument char *str: the char array to be filled with the number of packages
 */
-void detect_pkgs(char *str, const char *distro_str)
+void detect_pkgs(void)
 {
 	uint_fast16_t packages = 0;
 	glob_t gl;
@@ -153,47 +148,45 @@ void detect_pkgs(char *str, const char *distro_str)
 
 	globfree(&gl);
 
-	snprintf(str, MAX_STRLEN, "%"PRIuFAST16, packages);
+	snprintf(pkgs_str, MAX_STRLEN, "%"PRIuFAST16, packages);
 
 	return;
 }
 
 /*	detect_cpu
 	detects the computer's CPU brand/name-string
-	argument char *str: the char array to be filled with the CPU name
 */
-void detect_cpu(char *str)
+void detect_cpu(void)
 {
 	FILE *cpu_file;
 
 	/*
 		something like:
 		int len = MAX_STRLEN;
-		sysctlbyname("machdep.cpu.brand_string", str, &len, NULL, 0);
+		sysctlbyname("machdep.cpu.brand_string", cpu_str, &len, NULL, 0);
 	*/
 	cpu_file = popen("sysctl -n machdep.cpu.brand_string | "
 				"sed 's/(\\([Tt][Mm]\\))//g;s/(\\([Rr]\\))//g;s/^//g' | "
 				"tr -d '\\n' | tr -s ' '", "r");
-	fgets(str, MAX_STRLEN, cpu_file);
+	fgets(cpu_str, MAX_STRLEN, cpu_file);
 	pclose(cpu_file);
 
-	remove_excess_cpu_txt(str);
+	remove_excess_cpu_txt();
 
 	return;
 }
 
 /*	detect_gpu
 	detects the computer's GPU brand/name-string
-	argument char *str: the char array to be filled with the GPU name
 */
-void detect_gpu(char *str)
+void detect_gpu(void)
 {
 	FILE *gpu_file;
 
 	gpu_file = popen("system_profiler SPDisplaysDataType | "
 				"awk -F': ' '/^\\ *Chipset Model:/ {print $2}' | "
 				"tr -d '\\n'", "r");
-	fgets(str, MAX_STRLEN, gpu_file);
+	fgets(gpu_str, MAX_STRLEN, gpu_file);
 	pclose(gpu_file);
 
 	return;
@@ -201,9 +194,8 @@ void detect_gpu(char *str)
 
 /*	detect_disk
 	detects the computer's total disk capacity and usage
-	argument char *str: the char array to be filled with the disk data
 */
-void detect_disk(char *str)
+void detect_disk(void)
 {
 	struct statfs disk_info;
 	uintmax_t disk_total = 0, disk_used = 0, disk_percentage = 0;
@@ -214,7 +206,7 @@ void detect_disk(char *str)
 		disk_used = (((disk_info.f_blocks - disk_info.f_bfree)
 					* disk_info.f_bsize) / GB);
 		disk_percentage = (((float) disk_used / disk_total) * 100);
-		snprintf(str, MAX_STRLEN, "%"PRIuMAX"G / %"PRIuMAX"G (%"PRIuMAX"%%)",
+		snprintf(disk_str, MAX_STRLEN, "%"PRIuMAX"G / %"PRIuMAX"G (%"PRIuMAX"%%)",
 				disk_used, disk_total, disk_percentage);
 	}
 	else if (error)
@@ -225,9 +217,8 @@ void detect_disk(char *str)
 
 /*	detect_mem
 	detects the computer's total and used RAM
-	argument char *str: the char array to be filled with the memory data
 */
-void detect_mem(char *str)
+void detect_mem(void)
 {
 	FILE *mem_file;
 	uintmax_t total_mem = 0, used_mem = 0, free_mem;
@@ -247,22 +238,21 @@ void detect_mem(char *str)
 
 	used_mem = total_mem - free_mem;
 
-	snprintf(str, MAX_STRLEN, "%"PRIuMAX"%s / %"PRIuMAX"%s", used_mem, "MB", total_mem, "MB");
+	snprintf(mem_str, MAX_STRLEN, "%"PRIuMAX"%s / %"PRIuMAX"%s", used_mem, "MB", total_mem, "MB");
 
 	return;
 }
 
 /*	detect_res
 	detects the combined resolution of all monitors attached to the computer
-	argument char *str: the char array to be filled with the resolution
 */
-void detect_res(char *str)
+void detect_res(void)
 {
 	FILE *res_file;
 
 	res_file = popen("system_profiler SPDisplaysDataType | "
 				"awk '/Resolution:/ {print $2\"x\"$4}' | tr -d '\\n'", "r");
-	fgets(str, MAX_STRLEN, res_file);
+	fgets(res_str, MAX_STRLEN, res_file);
 	pclose(res_file);
 
 	return;
@@ -271,11 +261,10 @@ void detect_res(char *str)
 /*	detect_de
 	detects the desktop environment currently running on top of the OS.
 	On OS X, this will always be Aqua.
-	argument char *str: the char array to be filled with the DE name
 */
-void detect_de(char *str)
+void detect_de(void)
 {
-	safe_strncpy(str, "Aqua", MAX_STRLEN);
+	safe_strncpy(de_str, "Aqua", MAX_STRLEN);
 
 	return;
 }
@@ -283,11 +272,10 @@ void detect_de(char *str)
 /*	detect_wm
 	detects the window manager currently running on top of the OS.
 	On OS X, this will always be the Quartz Compositor.
-	argument char *str: the char array to be filled with the WM name
 */
-void detect_wm(char *str)
+void detect_wm(void)
 {
-	safe_strncpy(str, "Quartz Compositor", MAX_STRLEN);
+	safe_strncpy(wm_str, "Quartz Compositor", MAX_STRLEN);
 
 	return;
 }
@@ -295,22 +283,20 @@ void detect_wm(char *str)
 /*	detect_wm_theme
 	detects the theme associated with the WM detected in detect_wm().
 	On OS X, this will always be Aqua.
-	argument char *str: the char array to be filled with the WM Theme name
 */
-void detect_wm_theme(char *str, const char *wm_str)
+void detect_wm_theme(void)
 {
-	safe_strncpy(str, "Aqua", MAX_STRLEN);
+	safe_strncpy(wm_theme_str, "Aqua", MAX_STRLEN);
 
 	return;
 }
 
 /*	detect_gtk
 	OS X doesn't use GTK, so this function fills str with "Not Applicable"
-	argument char *str: the char array to be filled with any GTK info
 */
-void detect_gtk(char *str1, char *str2, char *str3)
+void detect_gtk(void)
 {
-	safe_strncpy(str, "Not Applicable", MAX_STRLEN);
+	safe_strncpy(gtk_str, "Not Applicable", MAX_STRLEN);
 
 	return;
 }

@@ -1,5 +1,5 @@
 /*  parser.c
- *  Author: Aaron Caffrey
+ *  Authors: William Woodruff and Aaron Caffrey
  *  -------------
  *  
  *  The primary argument(s) parser in screenfetch-c.

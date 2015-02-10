@@ -46,4 +46,4 @@ else
 	gpu="Unknown"
 fi
 
-echo ${gpu}
+echo -en ${gpu}

@@ -17,6 +17,8 @@ screenfetch-c only relies on libraries that come on virtually every system.
 
 * On Linux and Solaris, libX11 is required. In most package managers, this is listed as `libX11-dev`.
 
+* screenfetch-c has it's own screenshot creation and saving code based on jpeglib.h, in order to utilize it you are advised to install `libjpeg-turbo`, notice the **turbo**. The program will fallback to **scrot** and **screencapture** if jpeglib.h is not present while compiling the program.
+
 Installing screenfetch-c is very simple:
 
 ```bash

@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <regex.h>
 #include <inttypes.h>
+#include <malloc.h>
 
 /* program includes */
 #include "misc.h"
@@ -27,10 +28,10 @@
 	#include <Windows.h>
 #endif
 
-#if defined HAVE_X11_XLIB_H && defined HAVE_JPEGLIB_H
-	#include <X11/Xlib.h>
-	#include <X11/Xutil.h>
-	#include <jpeglib.h>
+#if defined (HAVE_X11_XLIB_H) && defined (HAVE_JPEGLIB_H)
+#	include <X11/Xlib.h>
+#	include <X11/Xutil.h>
+#	include <jpeglib.h>
 #endif
 
 /*	popen_raw_shell_version
@@ -73,11 +74,11 @@ void popen_raw_shell_version(const char *str1, const char *str2)
 	Remove unnecessary cpu text like: (tm), (TM), Processor
 	AMD Athlon(tm) II X3 455 Processor -> AMD Athlon II X3 455
 */
-void remove_excess_cpu_txt(char *str1)
+void remove_excess_cpu_txt(void)
 {
 	char str1_copy[MAX_STRLEN];
 
-	safe_strncpy(str1_copy, str1, MAX_STRLEN);
+	safe_strncpy(str1_copy, cpu_str, MAX_STRLEN);
 
 	bool tm_bool = false, processor_bool = false;
 	const char tokseps[] = " ()"; /* (TM), (tm) */
@@ -104,18 +105,18 @@ void remove_excess_cpu_txt(char *str1)
 		int x = 0, z = 0;
 
 		regcomp(&PatterN, "(.*)[^-](tm|TM)", REG_EXTENDED);
-		regexec(&PatterN, str1, 3, match, 0);
+		regexec(&PatterN, cpu_str, 3, match, 0);
 
 		int first_end = match[1].rm_eo;
 
 		for (x = match[1].rm_so; x < first_end; x++)
-			temp_arr[z++] = str1[x];
+			temp_arr[z++] = cpu_str[x];
 
 		regcomp(&PatterN, "(.*) Processor", REG_EXTENDED);
-		regexec(&PatterN, str1, 3, match, 0);
+		regexec(&PatterN, cpu_str, 3, match, 0);
 
 		for (x = (first_end+4); x < match[1].rm_eo; x++)
-			temp_arr[z++] = str1[x];
+			temp_arr[z++] = cpu_str[x];
 
 		temp_arr[z] = '\0';
 		snprintf(cpu_str, MAX_STRLEN, "%s", temp_arr);
@@ -157,16 +158,17 @@ void split_uptime(long uptime, uint_least32_t *secs, uint_least32_t *mins, uint_
 /*	take_screenshot
 	takes a screenshot and saves it to $HOME/screenfetch_screenshot.png
 */
-void take_screenshot(bool verbose, char *monitor_res)
+void take_screenshot(void)
 {
 	char time_str[MAX_STRLEN], shot_location[MAX_STRLEN];
 	time_t t = time(NULL);
 	strftime(time_str, MAX_STRLEN, "%Y-%m-%d-%H%M%S", localtime(&t));
 
-/* not everyone have `scrot' */
-#if defined HAVE_X11_XLIB_H && defined HAVE_JPEGLIB_H
+#if defined (HAVE_X11_XLIB_H) && defined (HAVE_JPEGLIB_H)
 
-	if (!STREQ(res_str, "No X Server"))
+	Display *disp = XOpenDisplay(NULL);
+
+	if (disp)
 	{
 		printf("%s", "Taking shot in 3..");
 		fflush(stdout);
@@ -184,19 +186,23 @@ void take_screenshot(bool verbose, char *monitor_res)
 		struct jpeg_compress_struct instance;
 		struct jpeg_error_mgr jerr;
 
+		FILE *file;
 		JSAMPROW row_ptr;
-		Display *disp  = XOpenDisplay(NULL);
 		Screen *screen = ScreenOfDisplay(disp, DefaultScreen(disp));
 		Window root    = RootWindow(disp, XScreenNumberOfScreen(screen));
 		width  		   = WidthOfScreen(screen);
 		height 		   = HeightOfScreen(screen);
 
-		XImage *img = XGetImage(disp, root, 0, 0, width, height, XAllPlanes(), ZPixmap);
+		XImage *img    = XGetImage(disp, root, 0, 0, width, height, XAllPlanes(), ZPixmap);
 
-		sprintf(shot_location, "%s/screenfetch-%s_%s.png",
-					getenv("HOME"), time_str, monitor_res);
+		sprintf(shot_location, "%s/screenfetch-%s_%s.jpg", getenv("HOME"), time_str, res_str);
 
-		FILE *file = fopen(shot_location, "wb");
+		if ((file = fopen(shot_location, "wb")) == NULL)
+		{
+			XCloseDisplay(disp);
+			fprintf(stderr, "Could not open \"%s\" for writing\n", shot_location);
+			exit(1);
+		}
 
 		char *tmp = malloc(sizeof(char)*3*width*height);
 
@@ -235,8 +241,16 @@ void take_screenshot(bool verbose, char *monitor_res)
 		jpeg_finish_compress(&instance);
 		fclose(file);
 
+		jpeg_destroy_compress(&instance);
 		XDestroyImage(img);
 		XCloseDisplay(disp);
+
+		if (FILE_EXISTS(shot_location) && verbose)
+			VERBOSE_OUT(_("Screenshot successfully saved."), "");
+
+		else if (!FILE_EXISTS(shot_location) && error)
+			ERR_REPORT(_("Problem saving screenshot."));
+
 	}
 	else
 	{
@@ -244,15 +258,12 @@ void take_screenshot(bool verbose, char *monitor_res)
 		return;
 	}
 
-	if (FILE_EXISTS(shot_location) && verbose)
-		VERBOSE_OUT(_("Screenshot successfully saved."), "");
-
 #else
 
 #if !defined(__CYGWIN__)
 	int call_status = 1;
 	char shot_str[MAX_STRLEN+MAX_STRLEN], file_loc[MAX_STRLEN+MAX_STRLEN];
-	sprintf(shot_location, "/screenfetch-%s_%s.png", time_str, monitor_res);
+	sprintf(shot_location, "/screenfetch-%s_%s.png", time_str, res_str);
 #endif
 
 	printf("%s", "Taking shot in 3..");

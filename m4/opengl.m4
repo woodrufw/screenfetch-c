@@ -9,7 +9,7 @@ AC_DEFUN([TEST_OPENGL],
 [
   GL_LIBS=""
 
-  AC_CHECK_HEADERS([GL/glx.h GL/gl.h], [
+  AC_CHECK_HEADERS([GL/glx.h], [
     GL_LIBS="-lGL"
     AC_SUBST(GL_LIBS)
   ])
