@@ -13,6 +13,8 @@
 
 extern char given_distro_str[MAX_STRLEN];
 extern char distro_str[MAX_STRLEN];
+extern char distro_name_distro_str[MAX_STRLEN];
+extern char distro_name_str[MAX_STRLEN];
 extern char host_str[MAX_STRLEN];
 extern char kernel_str[MAX_STRLEN];
 extern char uptime_str[MAX_STRLEN];
