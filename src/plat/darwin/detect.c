@@ -35,6 +35,9 @@
 #include "../../util.h"
 #include "../../error_flag.h"
 
+char distro_name_distro_str[MAX_STRLEN];
+char distro_name_str[MAX_STRLEN];
+
 /*	detect_distro
 	detects the computer's distribution (OS X release)
 */
