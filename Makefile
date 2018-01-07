@@ -38,7 +38,7 @@ else
 		SOURCES += $(wildcard ./src/plat/linux/*.c)
 		CFLAGS += -Wno-unused-result
 		LDFLAGS += -lX11 -lGL
-		SCRIPTS += ./src/scripts/detectwmtheme ./src/scripts/detectgtk
+		SCRIPTS += ./src/scripts/detectgtk
 		TESTS += x11test gltest
 	endif
 
