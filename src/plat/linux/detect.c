@@ -36,6 +36,13 @@
 #include "../../util.h"
 #include "../../error_flag.h"
 
+/* remove first and last character in string */
+static void rem_flc(char *s)
+{
+	memmove(s, s+1, strlen(s));
+	s[strlen(s)-1] = '\0';
+}
+
 /*	detect_distro
 	detects the computer's distribution (really only relevant on Linux)
 */
@@ -744,7 +751,7 @@ void detect_wm_theme(void)
 		{
 			snprintf(config_file, MAX_STRLEN, "%s/.config/awesome/rc.lua", home);
 			snprintf(exec_str, MAX_STRLEN,
-					 "grep -e '^[^-].*\\(theme\\|beautiful\\).*lua' '%s' | grep '[a-zA-Z0-9]\\+/[a-zA-Z0-9]\\+.lua' -o | cut -d'/' -f1 | head -n1",
+					 "grep -e '^[^-].*\\(theme\\|beautiful\\).*lua' '%s' | grep '[a-zA-Z0-9]\\+/[a-zA-Z0-9]\\+.lua' -o | head -n1 | cut -d'/' -f1",
 					 config_file);
 		}
 		else if (STRCASEEQ("BlackBox", wm_str))
@@ -760,8 +767,9 @@ void detect_wm_theme(void)
 		else if (STREQ("Cinnamon", wm_str))
 		{
 			safe_strncpy(exec_str,
-						 "gsettings get org.cinnamon.theme name | tail -c+2 | head -c-2",
+						 "gsettings get org.cinnamon.theme name",
 						 MAX_STRLEN);
+			rem_flc(exec_str);
 		}
 		else if (STREQ("Compiz", wm_str) || BEGINS_WITH(wm_str, "Mutter") ||
 				 STREQ("GNOME Shell", wm_str))
@@ -769,14 +777,16 @@ void detect_wm_theme(void)
 			if (command_in_path("gsettings"))
 			{
 				safe_strncpy(exec_str,
-							 "gsettings get org.gnome.desktop.wm.preferences theme | tail -c+2 | head -c-2",
+							 "gsettings get org.gnome.desktop.wm.preferences theme",
 							 MAX_STRLEN);
+				rem_flc(exec_str);
 			}
 			else if (command_in_path("gconftool-2"))
 			{
 				safe_strncpy(exec_str,
-							 "gconftool-2 -g /apps/metacity/general/theme | tail -c+2 | head -c-2",
+							 "gconftool-2 -g /apps/metacity/general/theme",
 							 MAX_STRLEN);
+				rem_flc(exec_str);
 			}
 		}
 		else if (STREQ("E16", wm_str))
@@ -785,8 +795,9 @@ void detect_wm_theme(void)
 			if (FILE_EXISTS(config_file))
 			{
 				snprintf(exec_str, MAX_STRLEN,
-						 "$(awk -F\"= \" '/theme.name/ {print $2}' '%s' | tail -c+2 | head -c-2",
+						 "awk -F\"= \" '/theme.name/ {print $2}' '%s'",
 						 config_file);
+				rem_flc(exec_str);
 			}
 		}
 		else if (STREQ("E17", wm_str) || STREQ("Enlightenment", wm_str))
@@ -880,45 +891,45 @@ void detect_wm_theme(void)
 			if (!STREQ("Unknown", kde_config_dir))
 			{
 				snprintf(exec_str, MAX_STRLEN,
-						 "var=\"$(awk '/PluginLib=kwin3_/{gsub(/PluginLib=kwin3_/,\"\",$0); print $0; exit}' '%s/share/config/kwinrc')\"; "
-						 "test -z $var && echo 'Unknown' || echo \"$var\"",
+						 "awk '/PluginLib=kwin3_/{gsub(/PluginLib=kwin3_/,\"\",$0); print $0; exit}' '%s/share/config/kwinrc'",
 						 kde_config_dir);
 				f = popen(exec_str, "r");
 				fgets(kde_theme, MAX_STRLEN, f);
 				pclose(f);
 
-				if (STREQ("Unknown", kde_theme))
+				if (STREQ("", kde_theme) || STREQ("\n", kde_theme))
 				{
 					snprintf(config_file, MAX_STRLEN, "%s/share/config/kdebugrc", kde_config_dir);
 					if (FILE_EXISTS(config_file))
 					{
 						snprintf(exec_str, MAX_STRLEN,
-								 "var=\"$(awk '/(decoration)/ {gsub(/\\[/,\"\",$1); print $1; exit}' '%s')\"; "
-								 "test -z $var && echo 'Unknown' || echo \"$var\"",
+								 "awk '/(decoration)/ {gsub(/\\[/,\"\",$1); print $1; exit}' '%s'",
 								 config_file);
 						f = popen(exec_str, "r");
 						fgets(kde_theme, MAX_STRLEN, f);
 						pclose(f);
+
+						if (STREQ("", kde_theme) || STREQ("\n", kde_theme))
+						{
+							safe_strncpy(kde_theme, "Unknown", MAX_STRLEN);
+						}
 					}
 				}
 			}
 
-			if (!STREQ("Unknown", kde_theme))
-			{
-				safe_strncpy(wm_theme_str, kde_theme, MAX_STRLEN);
-			}
+			safe_strncpy(exec_str, "false", MAX_STRLEN);
+			safe_strncpy(wm_theme_str, kde_theme, MAX_STRLEN);
 		}
 		else if (STREQ("Marco", wm_str) || STREQ("Metacity (Marco)", wm_str))
 		{
 			safe_strncpy(exec_str,
-						 "gsettings get org.mate.Marco.general theme | tail -c+2 | head -c-2",
+						 "gsettings get org.mate.Marco.general theme",
 						 MAX_STRLEN);
+			rem_flc(exec_str);
 		}
 		else if (STREQ("Metacity", wm_str))
 		{
-			safe_strncpy(exec_str,
-						 "gconftool-2 -g /apps/metacity/general/theme 2>/dev/null | echo 'Unknown'",
-						 MAX_STRLEN);
+			safe_strncpy(exec_str, "gconftool-2 -g /apps/metacity/general/theme 2>/dev/null", MAX_STRLEN);
 		}
 		else if (STRCASEEQ("OpenBox", wm_str))
 		{
@@ -980,6 +991,11 @@ void detect_wm_theme(void)
 			wm_theme_file = popen(exec_str, "r");
 			fgets(wm_theme_str, MAX_STRLEN, wm_theme_file);
 			pclose(wm_theme_file);
+
+			if (STREQ("", wm_theme_str) || STREQ("\n", wm_theme_str))
+			{
+				safe_strncpy(wm_theme_str, "Unknown", MAX_STRLEN);
+			}
 		}
 	}
 
