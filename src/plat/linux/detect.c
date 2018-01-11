@@ -36,11 +36,27 @@
 #include "../../util.h"
 #include "../../error_flag.h"
 
-/* remove first and last character in string */
-static void rem_flc(char *s)
+/*	remove preceding and trailing single quote character,
+	remove trailing newline
+*/
+static void unquote(char *s)
 {
-	memmove(s, s+1, strlen(s));
-	s[strlen(s)-1] = '\0';
+	int len = strlen(s);
+
+	if (s[len-1] == '\n')
+	{
+		s[len-1] = '\0';
+		len--;
+	}
+	if (s[len-1] == '\'')
+	{
+		s[len-1] = '\0';
+		len--;
+	}
+	if (s[0] == '\'')
+	{
+		memmove(s, s+1, len);
+	}
 }
 
 /*	detect_distro
@@ -769,7 +785,6 @@ void detect_wm_theme(void)
 			safe_strncpy(exec_str,
 						 "gsettings get org.cinnamon.theme name",
 						 MAX_STRLEN);
-			rem_flc(exec_str);
 		}
 		else if (STREQ("Compiz", wm_str) || BEGINS_WITH(wm_str, "Mutter") ||
 				 STREQ("GNOME Shell", wm_str))
@@ -779,14 +794,12 @@ void detect_wm_theme(void)
 				safe_strncpy(exec_str,
 							 "gsettings get org.gnome.desktop.wm.preferences theme",
 							 MAX_STRLEN);
-				rem_flc(exec_str);
 			}
 			else if (command_in_path("gconftool-2"))
 			{
 				safe_strncpy(exec_str,
 							 "gconftool-2 -g /apps/metacity/general/theme",
 							 MAX_STRLEN);
-				rem_flc(exec_str);
 			}
 		}
 		else if (STREQ("E16", wm_str))
@@ -797,7 +810,6 @@ void detect_wm_theme(void)
 				snprintf(exec_str, MAX_STRLEN,
 						 "awk -F\"= \" '/theme.name/ {print $2}' '%s'",
 						 config_file);
-				rem_flc(exec_str);
 			}
 		}
 		else if (STREQ("E17", wm_str) || STREQ("Enlightenment", wm_str))
@@ -925,7 +937,6 @@ void detect_wm_theme(void)
 			safe_strncpy(exec_str,
 						 "gsettings get org.mate.Marco.general theme",
 						 MAX_STRLEN);
-			rem_flc(exec_str);
 		}
 		else if (STREQ("Metacity", wm_str))
 		{
@@ -996,6 +1007,7 @@ void detect_wm_theme(void)
 			{
 				safe_strncpy(wm_theme_str, "Unknown", MAX_STRLEN);
 			}
+			unquote(wm_theme_str);
 		}
 	}
 
@@ -1012,14 +1024,21 @@ void detect_wm_theme(void)
 void detect_gtk(void)
 {
 	FILE *gtk_file;
+	char exec_str[MAX_STRLEN];
 	char gtk2_str[MAX_STRLEN] = "Unknown";
 	char gtk3_str[MAX_STRLEN] = "Unknown";
 	char gtk_icons_str[MAX_STRLEN] = "Unknown";
 	char gtk_font_str[MAX_STRLEN] = "Unknown";
 
-	gtk_file = popen("detectgtk 2> /dev/null", "r");
+	snprintf(exec_str, MAX_STRLEN, "detectgtk '%s' 2> /dev/null", de_str);
+	gtk_file = popen(exec_str, "r");
 	fscanf(gtk_file, "%s%s%s%s", gtk2_str, gtk3_str, gtk_icons_str, gtk_font_str);
 	pclose(gtk_file);
+
+	unquote(gtk2_str);
+	unquote(gtk3_str);
+	unquote(gtk_icons_str);
+	unquote(gtk_font_str);
 
 	if (STREQ(gtk3_str, "Unknown"))
 		snprintf(gtk_str, MAX_STRLEN, "%s (GTK2), %s (Icons)", gtk2_str,
