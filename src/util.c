@@ -122,39 +122,6 @@ void take_screenshot(bool verbose)
 	return;
 }
 
-/*	https://stackoverflow.com/a/37132824
-*/
-#ifdef __linux
-	#if _POSIX_C_SOURCE >= 200809L
-		#define sf_strdup(x) strdup(x)
-	#else
-
-static char *sf_strdup(char *src)
-{
-	char *str, *p;
-	int len = 0;
-
-	while (src[len])
-	{
-		len++;
-	}
-
-	str = malloc(len + 1);
-	p = str;
-
-	while (*src)
-	{
-		*p++ = *src++;
-	}
-	*p = '\0';
-
-	return str;
-}
-
-	#endif	/* _POSIX_C_SOURCE */
-#endif	/* __linux */
-
-
 /*	returns 1 if command is in PATH, otherwise 0
 */
 #ifdef __linux
@@ -171,7 +138,7 @@ int command_in_path(const char *command)
 		return 0;
 	}
 
-	env_copy = sf_strdup(env);
+	env_copy = strdup(env);
 
 	/*	though not really needed, stop after 9999 iterations
 		to prevent any potential endless loop
