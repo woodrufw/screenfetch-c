@@ -215,25 +215,22 @@ void detect_disk(void)
 */
 void detect_mem(void)
 {
+	int64_t used_mem = 0, total_mem = 0;
 	vm_size_t page_size;
 	mach_port_t mach_port;
 	mach_msg_type_number_t count;
 	vm_statistics64_data_t vm_stats;
 	mach_port = mach_host_self();
 	count = sizeof(vm_stats) / sizeof(natural_t);
-	double out = 0;
 	if (KERN_SUCCESS == host_page_size(mach_port, &page_size) &&
 	KERN_SUCCESS == host_statistics64(mach_port, HOST_VM_INFO, (host_info64_t)&vm_stats, &count)){
-		out = ((int64_t)vm_stats.active_count + (int64_t)vm_stats.wire_count) * (int64_t)page_size;
+		used_mem = ((int64_t)vm_stats.active_count + (int64_t)vm_stats.wire_count) * (int64_t)page_size;
 	}
-	long long used_mem = out / (1024 * 1024);
 
-	int64_t total_mem;
-	size_t len = sizeof(int64_t);
+	size_t len = sizeof total_mem;
 	sysctlbyname("hw.memsize", &total_mem, &len, NULL, 0);
-	total_mem /= (1024 * 1024);
 
-	snprintf(mem_str, MAX_STRLEN, "%lld%s / %lld%s", used_mem, "MB", total_mem, "MB");
+	snprintf(mem_str, MAX_STRLEN, "%lld%s / %lld%s", used_mem / MB, "MB", total_mem / MB, "MB");
 
 	return;
 }
@@ -311,11 +308,9 @@ void detect_res(void)
 {
 	FILE *res_file;
 
-	res_file = popen("system_profiler SPDisplaysDataType 2> /dev/null | "
-				"awk '/Resolution:/ {print $2\"x\"$4}' | tr -d '\\n'", "r");
+	res_file = popen("osascript -e 'tell application \"Finder\" to set res to bounds of window of desktop' -e 'item 3 of res & \"x\" & item 4 of res' | tr -d ',\n'", "r");
 	fgets(res_str, MAX_STRLEN, res_file);
 	pclose(res_file);
-
 	return;
 }
 
