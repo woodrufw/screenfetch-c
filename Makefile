@@ -44,7 +44,7 @@ else
 
 	ifeq ($(UNAME_S),Darwin)
 		SOURCES += $(wildcard ./src/plat/darwin/*.c)
-		LDFLAGS += -framework CoreServices
+		LDFLAGS += -framework CoreServices -framework CoreFoundation -framework IOKit
 		CPPFLAGS += -D_DARWIN_C_SOURCE -D_DARWIN_USE_64_BIT_INODE
 	endif
 

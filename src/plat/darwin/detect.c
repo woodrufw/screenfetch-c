@@ -19,13 +19,17 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 #include <sys/utsname.h>
+#include <sys/sysctl.h>
 #include <time.h>
 #include <glob.h>
 #include <Availability.h>
+#include <IOKit/IOKitlib.h>
+#include <CoreFoundation/CoreFoundation.h>
 #include <mach/mach_time.h>
-#if __MAC_OS_X_VERSION_MIN_REQUIRED <= 1070
-	#include <CoreServices/CoreServices.h> /* for Gestalt */
-#endif
+#include <mach/vm_statistics.h>
+#include <mach/mach_types.h>
+#include <mach/mach_init.h>
+#include <mach/mach_host.h>
 
 /* program includes */
 #include "../../arrays.h"
@@ -40,24 +44,13 @@
 */
 void detect_distro(void)
 {
-#if __MAC_OS_X_VERSION_MIN_REQUIRED <= 1070
-	int major, minor, bugfix;
-
-	Gestalt(gestaltSystemVersionMajor, (SInt32 *) &major);
-	Gestalt(gestaltSystemVersionMinor, (SInt32 *) &minor);
-	Gestalt(gestaltSystemVersionBugFix, (SInt32 *) &bugfix);
-
-	snprintf(distro_str, MAX_STRLEN, "Max OS X %d.%d.%d", major, minor, bugfix);
-#else
-	FILE *distro_file;
-	char distro_vers_str[MAX_STRLEN] = {0};
-
-	distro_file = popen("sw_vers -productVersion | tr -d '\\n'", "r");
-	fgets(distro_vers_str, MAX_STRLEN, distro_file);
-	pclose(distro_file);
-
-	snprintf(distro_str, MAX_STRLEN, "Mac OS X %s", distro_vers_str);
-#endif
+	CFArrayRef split = CFStringCreateArrayBySeparatingStrings(NULL, CFPreferencesCopyAppValue(CFSTR("ProductVersion"), CFSTR("/System/Library/CoreServices/SystemVersion")), CFSTR("."));
+	unsigned maj = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 0));
+	unsigned min = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 1));
+	unsigned fix = 0;
+	if(CFArrayGetCount(split) == 3)
+		fix = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 2));
+	snprintf(distro_str, MAX_STRLEN, "Mac OS X %d.%d.%d", maj, min, fix);
 
 	safe_strncpy(host_color, TLBL, MAX_STRLEN);
 
@@ -159,19 +152,9 @@ void detect_pkgs(void)
 */
 void detect_cpu(void)
 {
-	FILE *cpu_file;
-
-	/*
-		something like:
-		int len = MAX_STRLEN;
-		sysctlbyname("machdep.cpu.brand_string", str, &len, NULL, 0);
-	*/
-	cpu_file = popen("sysctl -n machdep.cpu.brand_string 2> /dev/null | "
-				"sed 's/(\\([Tt][Mm]\\))//g;s/(\\([Rr]\\))//g;s/^//g' | "
-				"tr -d '\\n' | tr -s ' '", "r");
-	fgets(cpu_str, MAX_STRLEN, cpu_file);
-	pclose(cpu_file);
-
+	size_t size;
+	sysctlbyname("machdep.cpu.brand_string", NULL, &size, NULL, 0);
+	sysctlbyname("machdep.cpu.brand_string", cpu_str, &size, NULL, 0);
 	return;
 }
 
@@ -180,13 +163,24 @@ void detect_cpu(void)
 */
 void detect_gpu(void)
 {
-	FILE *gpu_file;
-
-	gpu_file = popen("system_profiler SPDisplaysDataType 2> /dev/null | "
-				"awk -F': ' '/^\\ *Chipset Model:/ {print $2}' | "
-				"tr -d '\\n'", "r");
-	fgets(gpu_str, MAX_STRLEN, gpu_file);
-	pclose(gpu_file);
+	CFMutableDictionaryRef matchDict = IOServiceMatching("IOPCIDevice");
+	io_iterator_t iterator;
+	if (IOServiceGetMatchingServices(kIOMasterPortDefault, matchDict, &iterator) == kIOReturnSuccess){
+		io_registry_entry_t regEntry;
+		while ((regEntry = IOIteratorNext(iterator))) {
+			CFMutableDictionaryRef serviceDictionary;
+			if (IORegistryEntryCreateCFProperties(regEntry, &serviceDictionary, kCFAllocatorDefault, kNilOptions) != kIOReturnSuccess){
+                	    IOObjectRelease(regEntry);
+                	    continue;
+                	}
+                	const void *GPUModel = CFDictionaryGetValue(serviceDictionary, CFSTR("model"));
+                	if (GPUModel && CFGetTypeID(GPUModel) == CFDataGetTypeID())
+					safe_strncpy(gpu_str, (char *)CFDataGetBytePtr((CFDataRef) GPUModel), MAX_STRLEN);
+                	CFRelease(serviceDictionary);
+                	IOObjectRelease(regEntry);
+            	}
+		IOObjectRelease(iterator);
+        }
 
 	return;
 }
@@ -221,25 +215,23 @@ void detect_disk(void)
 */
 void detect_mem(void)
 {
-	FILE *mem_file;
-	long long total_mem = 0;
-	long long free_mem = 0;
-	long long used_mem = 0;
+	vm_size_t page_size;
+	mach_port_t mach_port;
+	mach_msg_type_number_t count;
+	vm_statistics64_data_t vm_stats;
+	mach_port = mach_host_self();
+	count = sizeof(vm_stats) / sizeof(natural_t);
+	double out = 0;
+	if (KERN_SUCCESS == host_page_size(mach_port, &page_size) &&
+	KERN_SUCCESS == host_statistics64(mach_port, HOST_VM_INFO, (host_info64_t)&vm_stats, &count)){
+		out = ((int64_t)vm_stats.active_count + (int64_t)vm_stats.wire_count) * (int64_t)page_size;
+	}
+	long long used_mem = out / (1024 * 1024);
 
-	mem_file = popen("sysctl -n hw.memsize 2> /dev/null", "r");
-	fscanf(mem_file, "%lld", &total_mem);
-	pclose(mem_file);
-
-	mem_file = popen("vm_stat | head -2 | tail -1 | tr -d 'Pages free: .'", "r");
-	fscanf(mem_file, "%lld", &free_mem);
-	pclose(mem_file);
-
-	total_mem /= (long) MB;
-
-	free_mem *= 4096; /* 4KiB is OS X's page size */
-	free_mem /= (long) MB;
-
-	used_mem = total_mem - free_mem;
+	int64_t total_mem;
+	size_t len = sizeof(int64_t);
+	sysctlbyname("hw.memsize", &total_mem, &len, NULL, 0);
+	total_mem /= (1024 * 1024);
 
 	snprintf(mem_str, MAX_STRLEN, "%lld%s / %lld%s", used_mem, "MB", total_mem, "MB");
 
