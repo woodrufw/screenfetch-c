@@ -25,6 +25,7 @@
 #include <Availability.h>
 #include <IOKit/IOKitlib.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <ApplicationServices/ApplicationServices.h>
 #include <mach/mach_time.h>
 #include <mach/vm_statistics.h>
 #include <mach/mach_types.h>
@@ -44,13 +45,22 @@
 */
 void detect_distro(void)
 {
+	char *codenames[] = {"Cheetah", "Puma", "Jaguar", "Panther", "Tiger", "Leopard", "Snow Leopard", "Lion", "Mountain Lion", "Mavericks", "Yosemite", "El Capitan", "Sierra", "High Sierra", "Mojave"};
 	CFArrayRef split = CFStringCreateArrayBySeparatingStrings(NULL, CFPreferencesCopyAppValue(CFSTR("ProductVersion"), CFSTR("/System/Library/CoreServices/SystemVersion")), CFSTR("."));
 	unsigned maj = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 0));
 	unsigned min = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 1));
 	unsigned fix = 0;
 	if(CFArrayGetCount(split) == 3)
 		fix = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 2));
-	snprintf(distro_str, MAX_STRLEN, "Mac OS X %d.%d.%d", maj, min, fix);
+
+	char build_ver[16];
+	CFStringGetCString(CFPreferencesCopyAppValue(CFSTR("ProductBuildVersion"), CFSTR("/System/Library/CoreServices/SystemVersion")), build_ver, 16, kCFStringEncodingUTF8);
+	
+	char *codename = "Unknown";
+	if(min < sizeof codenames / sizeof *codenames)
+		codename = codenames[min];
+
+	snprintf(distro_str, MAX_STRLEN, "Mac OS X %d.%d.%d (%s) \"%s\"", maj, min, fix, build_ver, codename);
 
 	safe_strncpy(host_color, TLBL, MAX_STRLEN);
 
@@ -306,11 +316,13 @@ void detect_shell(void)
 */
 void detect_res(void)
 {
-	FILE *res_file;
-
-	res_file = popen("osascript -e 'tell application \"Finder\" to set res to bounds of window of desktop' -e 'item 3 of res & \"x\" & item 4 of res' | tr -d ',\n'", "r");
-	fgets(res_str, MAX_STRLEN, res_file);
-	pclose(res_file);
+	uint32_t count = 0, chars = 0;
+	CGGetOnlineDisplayList(UINT32_MAX, NULL, &count);
+	CGDirectDisplayID displays[count];
+	CGGetOnlineDisplayList(count, displays, &count);
+	chars += snprintf(res_str, MAX_STRLEN, "%zu x %zu", CGDisplayPixelsWide(*displays), CGDisplayPixelsHigh(*displays));
+	for(int i = 1; i < count; ++i)
+		chars += snprintf(res_str + chars, MAX_STRLEN, ", %zu x %zu", CGDisplayPixelsWide(displays[i]), CGDisplayPixelsHigh(displays[i]));
 	return;
 }
 
@@ -338,12 +350,17 @@ void detect_wm(void)
 
 /*	detect_wm_theme
 	detects the theme associated with the WM detected in detect_wm().
-	On OS X, this will always be Aqua.
+	On OS X, there are dark and light theme, and various accent colours.
 */
 void detect_wm_theme(void)
 {
-	safe_strncpy(wm_theme_str, "Aqua", MAX_STRLEN);
-
+	char *accents[] = {"Graphite", "Red", "Orange", "Yellow", "Green", "", "Purple", "Pink", "Blue"};
+	Boolean e;
+	CFStringRef def = CFSTR(".GlobalPreferences");
+	CFIndex accent = CFPreferencesGetAppIntegerValue(CFSTR("AppleAccentColor"), def, &e);
+	CFIndex colorvar = CFPreferencesGetAppIntegerValue(CFSTR("AppleAquaColorVariant"), def, NULL);
+	CFPropertyListRef style = CFPreferencesCopyAppValue(CFSTR("AppleInterfaceStyle"), def);
+	snprintf(wm_theme_str, MAX_STRLEN, "%s %s", style?"Dark":"Light", e?accents[accent + 1]:colorvar == 6?"Graphite":"Blue");
 	return;
 }
 
