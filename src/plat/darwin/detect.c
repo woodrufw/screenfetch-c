@@ -50,14 +50,15 @@ void detect_distro(void)
 	unsigned maj = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 0));
 	unsigned min = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 1));
 	unsigned fix = 0;
-	if(CFArrayGetCount(split) == 3)
+	if (CFArrayGetCount(split) == 3){
 		fix = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 2));
+	}
 
 	char build_ver[16];
 	CFStringGetCString(CFPreferencesCopyAppValue(CFSTR("ProductBuildVersion"), CFSTR("/System/Library/CoreServices/SystemVersion")), build_ver, 16, kCFStringEncodingUTF8);
 	
 	char *codename = "Unknown";
-	if(min < sizeof codenames / sizeof *codenames)
+	if (min < sizeof(codenames) / sizeof(*codenames))
 		codename = codenames[min];
 
 	snprintf(distro_str, MAX_STRLEN, "Mac OS X %d.%d.%d (%s) \"%s\"", maj, min, fix, build_ver, codename);
@@ -162,8 +163,7 @@ void detect_pkgs(void)
 */
 void detect_cpu(void)
 {
-	size_t size;
-	sysctlbyname("machdep.cpu.brand_string", NULL, &size, NULL, 0);
+	size_t size = MAX_STRLEN;
 	sysctlbyname("machdep.cpu.brand_string", cpu_str, &size, NULL, 0);
 	return;
 }
@@ -180,18 +180,17 @@ void detect_gpu(void)
 		while ((regEntry = IOIteratorNext(iterator))) {
 			CFMutableDictionaryRef serviceDictionary;
 			if (IORegistryEntryCreateCFProperties(regEntry, &serviceDictionary, kCFAllocatorDefault, kNilOptions) != kIOReturnSuccess){
-                	    IOObjectRelease(regEntry);
-                	    continue;
-                	}
-                	const void *GPUModel = CFDictionaryGetValue(serviceDictionary, CFSTR("model"));
-                	if (GPUModel && CFGetTypeID(GPUModel) == CFDataGetTypeID())
+				IOObjectRelease(regEntry);
+				continue;
+			}
+			const void *GPUModel = CFDictionaryGetValue(serviceDictionary, CFSTR("model"));
+			if (GPUModel && CFGetTypeID(GPUModel) == CFDataGetTypeID())
 					safe_strncpy(gpu_str, (char *)CFDataGetBytePtr((CFDataRef) GPUModel), MAX_STRLEN);
-                	CFRelease(serviceDictionary);
-                	IOObjectRelease(regEntry);
-            	}
+			CFRelease(serviceDictionary);
+			IOObjectRelease(regEntry);
+		}
 		IOObjectRelease(iterator);
-        }
-
+	}
 	return;
 }
 
@@ -237,7 +236,7 @@ void detect_mem(void)
 		used_mem = ((int64_t)vm_stats.active_count + (int64_t)vm_stats.wire_count) * (int64_t)page_size;
 	}
 
-	size_t len = sizeof total_mem;
+	size_t len = sizeof(total_mem);
 	sysctlbyname("hw.memsize", &total_mem, &len, NULL, 0);
 
 	snprintf(mem_str, MAX_STRLEN, "%lld%s / %lld%s", used_mem / MB, "MB", total_mem / MB, "MB");
@@ -321,8 +320,9 @@ void detect_res(void)
 	CGDirectDisplayID displays[count];
 	CGGetOnlineDisplayList(count, displays, &count);
 	chars += snprintf(res_str, MAX_STRLEN, "%zu x %zu", CGDisplayPixelsWide(*displays), CGDisplayPixelsHigh(*displays));
-	for(int i = 1; i < count; ++i)
+	for (int i = 1; i < count; ++i){
 		chars += snprintf(res_str + chars, MAX_STRLEN, ", %zu x %zu", CGDisplayPixelsWide(displays[i]), CGDisplayPixelsHigh(displays[i]));
+	}
 	return;
 }
 
@@ -355,12 +355,20 @@ void detect_wm(void)
 void detect_wm_theme(void)
 {
 	char *accents[] = {"Graphite", "Red", "Orange", "Yellow", "Green", "", "Purple", "Pink", "Blue"};
-	Boolean e;
+	char *color;
+	Boolean accentExists;
 	CFStringRef def = CFSTR(".GlobalPreferences");
-	CFIndex accent = CFPreferencesGetAppIntegerValue(CFSTR("AppleAccentColor"), def, &e);
-	CFIndex colorvar = CFPreferencesGetAppIntegerValue(CFSTR("AppleAquaColorVariant"), def, NULL);
+	CFIndex accentColor = CFPreferencesGetAppIntegerValue(CFSTR("AppleAccentColor"), def, &accentExists);
+	CFIndex aquaColorVariant = CFPreferencesGetAppIntegerValue(CFSTR("AppleAquaColorVariant"), def, NULL);
 	CFPropertyListRef style = CFPreferencesCopyAppValue(CFSTR("AppleInterfaceStyle"), def);
-	snprintf(wm_theme_str, MAX_STRLEN, "%s %s", style?"Dark":"Light", e?accents[accent + 1]:colorvar == 6?"Graphite":"Blue");
+	if (accentExists){
+		color = accents[accentColor + 1];
+	} else if (aquaColorVariant == 6){
+		color = "Graphite";
+	} else{
+		color = "Blue";
+	}
+	snprintf(wm_theme_str, MAX_STRLEN, "%s %s", style?"Dark":"Light", color);
 	return;
 }
 
