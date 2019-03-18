@@ -46,7 +46,14 @@
 void detect_distro(void)
 {
 	char *codenames[] = {"Cheetah", "Puma", "Jaguar", "Panther", "Tiger", "Leopard", "Snow Leopard", "Lion", "Mountain Lion", "Mavericks", "Yosemite", "El Capitan", "Sierra", "High Sierra", "Mojave"};
-	CFArrayRef split = CFStringCreateArrayBySeparatingStrings(NULL, CFPreferencesCopyAppValue(CFSTR("ProductVersion"), CFSTR("/System/Library/CoreServices/SystemVersion")), CFSTR("."));
+	CFArrayRef split = CFStringCreateArrayBySeparatingStrings(
+		NULL,
+		CFPreferencesCopyAppValue(
+			CFSTR("ProductVersion"),
+			CFSTR("/System/Library/CoreServices/SystemVersion")
+		),
+		CFSTR(".")
+	);
 	unsigned maj = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 0));
 	unsigned min = CFStringGetIntValue(CFArrayGetValueAtIndex(split, 1));
 	unsigned fix = 0;
@@ -55,11 +62,20 @@ void detect_distro(void)
 	}
 
 	char build_ver[16];
-	CFStringGetCString(CFPreferencesCopyAppValue(CFSTR("ProductBuildVersion"), CFSTR("/System/Library/CoreServices/SystemVersion")), build_ver, 16, kCFStringEncodingUTF8);
+	CFStringGetCString(
+		CFPreferencesCopyAppValue(
+			CFSTR("ProductBuildVersion"),
+			CFSTR("/System/Library/CoreServices/SystemVersion")
+		),
+		build_ver,
+		16,
+		kCFStringEncodingUTF8
+	);
 	
 	char *codename = "Unknown";
-	if (min < sizeof(codenames) / sizeof(*codenames))
+	if (min < sizeof(codenames) / sizeof(*codenames)){
 		codename = codenames[min];
+	}
 
 	snprintf(distro_str, MAX_STRLEN, "Mac OS X %d.%d.%d (%s) \"%s\"", maj, min, fix, build_ver, codename);
 
@@ -191,6 +207,7 @@ void detect_gpu(void)
 		}
 		IOObjectRelease(iterator);
 	}
+	
 	return;
 }
 
