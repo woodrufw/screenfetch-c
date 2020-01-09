@@ -21,4 +21,4 @@ jobs:
       - name: deps
         run: sudo apt install -y libgl-dev libx11-dev
       - name: build
-        run: CC=${{ matrix.compiler }} make
+        run: make CC=${{ matrix.compiler }}
