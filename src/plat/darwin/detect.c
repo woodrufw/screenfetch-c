@@ -44,10 +44,10 @@
   detects the computer's distribution (OS X release)
 */
 void detect_distro(void) {
-  char *codenames[] = {"Cheetah",  "Puma",         "Jaguar", "Panther",       "Tiger",
-                       "Leopard",  "Snow Leopard", "Lion",   "Mountain Lion", "Mavericks",
-                       "Yosemite", "El Capitan",   "Sierra", "High Sierra",   "Mojave",
-                       "Catalina"};
+  char *codenames[] = {"Cheetah",       "Puma",        "Jaguar",       "Panther",
+                       "Tiger",         "Leopard",     "Snow Leopard", "Lion",
+                       "Mountain Lion", "Mavericks",   "Yosemite",     "El Capitan",
+                       "Sierra",        "High Sierra", "Mojave",       "Catalina"};
   CFArrayRef split = CFStringCreateArrayBySeparatingStrings(
       NULL,
       CFPreferencesCopyAppValue(CFSTR("ProductVersion"),
@@ -67,16 +67,19 @@ void detect_distro(void) {
 
   char *codename = "Mac OS";
   char buf[128];
-  if(min < sizeof(codenames) / sizeof(*codenames)) {
-    snprintf(buf, sizeof buf, "%s %s", min < 8?"Mac OS X":min < 12?"OS X":"macOS", codenames[min]);
+  if (min < sizeof(codenames) / sizeof(*codenames)) {
+    snprintf(buf, sizeof buf, "%s %s", min < 8 ? "Mac OS X" : min < 12 ? "OS X" : "macOS",
+             codenames[min]);
     codename = buf;
   } else {
     char *lookfor = "SOFTWARE LICENSE AGREEMENT FOR ";
-    FILE *fp = fopen("/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.rtf", "r");
-    if(fp != NULL) {
+    FILE *fp = fopen("/System/Library/CoreServices/Setup "
+                     "Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.rtf",
+                     "r");
+    if (fp != NULL) {
       for (int i = 0; i < 50 && fgets(buf, sizeof buf, fp); ++i) {
         char *p = strstr(buf, lookfor);
-        if(p) {
+        if (p) {
           codename = p + strlen(lookfor);
           codename[strlen(p) - strlen(lookfor) - 1] = '\0';
           break;
