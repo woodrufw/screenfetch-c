@@ -68,7 +68,7 @@ void detect_distro(void) {
   char *codename = "Mac OS";
   char buf[128];
   if (min < sizeof(codenames) / sizeof(*codenames)) {
-    snprintf(buf, sizeof buf, "%s %s", min < 8 ? "Mac OS X" : min < 12 ? "OS X" : "macOS",
+    snprintf(buf, sizeof(buf), "%s %s", min < 8 ? "Mac OS X" : min < 12 ? "OS X" : "macOS",
              codenames[min]);
     codename = buf;
   } else {
@@ -77,7 +77,7 @@ void detect_distro(void) {
                      "Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.rtf",
                      "r");
     if (fp != NULL) {
-      for (int i = 0; i < 50 && fgets(buf, sizeof buf, fp); ++i) {
+      for (int i = 0; i < 50 && fgets(buf, sizeof(buf), fp); ++i) {
         char *p = strstr(buf, lookfor);
         if (p) {
           codename = p + strlen(lookfor);
